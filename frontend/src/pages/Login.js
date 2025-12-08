@@ -109,7 +109,7 @@ const Login = () => {
         
         .illustration-panel {
           flex: 1;
-          background: linear-gradient(135deg, #34a853 0%, #2d8f47 100%);
+          background: linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -159,7 +159,7 @@ const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+        background: 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
       }}>
         <div className="login-container">
@@ -171,7 +171,7 @@ const Login = () => {
             }}>
               <img
                 src={logo}
-                alt="QuadraCerta"
+                alt="AgendaCerta"
                 style={{
                   width: '300px',
                   height: '300px',
@@ -185,14 +185,14 @@ const Login = () => {
                 marginBottom: '20px',
                 textShadow: '0 2px 10px rgba(0,0,0,0.2)'
               }}>
-                QuadraCerta
+                AgendaCerta
               </h1>
               <p style={{
                 fontSize: '18px',
                 fontWeight: '300',
                 textShadow: '0 2px 10px rgba(0,0,0,0.2)'
               }}>
-                Gestão completa para complexos esportivos
+                Gestão completa para agendamentos e serviços
               </p>
             </div>
           </div>
@@ -286,7 +286,7 @@ const Login = () => {
                       transition: 'all 0.3s ease'
                     }}
                     onFocus={(e) => {
-                      e.target.style.boxShadow = '0 2px 10px rgba(52, 168, 83, 0.2)';
+                      e.target.style.boxShadow = '0 2px 10px rgba(26, 115, 232, 0.2)';
                       e.target.style.transform = 'translateY(-1px)';
                     }}
                     onBlur={(e) => {
@@ -326,7 +326,7 @@ const Login = () => {
                       transition: 'all 0.3s ease'
                     }}
                     onFocus={(e) => {
-                      e.target.style.boxShadow = '0 2px 10px rgba(52, 168, 83, 0.2)';
+                      e.target.style.boxShadow = '0 2px 10px rgba(26, 115, 232, 0.2)';
                       e.target.style.transform = 'translateY(-1px)';
                     }}
                     onBlur={(e) => {
@@ -360,7 +360,7 @@ const Login = () => {
                   <Link
                     to="/forgot-password"
                     style={{
-                      color: '#34a853',
+                      color: '#1A73E8',
                       textDecoration: 'none',
                       fontWeight: '500'
                     }}
@@ -378,11 +378,11 @@ const Login = () => {
                     fontSize: '15px',
                     fontWeight: '600',
                     color: 'white',
-                    background: loading ? '#999' : 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+                    background: loading ? '#999' : 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 15px rgba(52, 168, 83, 0.3)',
+                    boxShadow: '0 4px 15px rgba(26, 115, 232, 0.3)',
                     transition: 'all 0.3s ease',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px'
@@ -390,13 +390,13 @@ const Login = () => {
                   onMouseEnter={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(52, 168, 83, 0.4)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(26, 115, 232, 0.4)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(52, 168, 83, 0.3)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(26, 115, 232, 0.3)';
                     }
                   }}
                 >
@@ -413,7 +413,7 @@ const Login = () => {
                   <Link
                     to="/register"
                     style={{
-                      color: '#34a853',
+                      color: '#1A73E8',
                       textDecoration: 'none',
                       fontWeight: '600'
                     }}
@@ -560,7 +560,7 @@ const Login = () => {
                       fontWeight: '500'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.borderColor = '#34a853';
+                      e.currentTarget.style.borderColor = '#1A73E8';
                       e.currentTarget.style.transform = 'translateX(5px)';
                     }}
                     onMouseOut={(e) => {
@@ -571,7 +571,7 @@ const Login = () => {
                     <div style={{
                       width: '40px',
                       height: '40px',
-                      background: 'linear-gradient(135deg, #34a853, #2d8e47)',
+                      background: 'linear-gradient(135deg, #1A73E8, #2d8e47)',
                       borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',

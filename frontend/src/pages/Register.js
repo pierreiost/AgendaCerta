@@ -118,7 +118,7 @@ const Register = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+          background: 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
           padding: '20px',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif'
         }}>
@@ -138,7 +138,7 @@ const Register = () => {
               justifyContent: 'center',
               width: '80px',
               height: '80px',
-              background: 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+              background: 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
               borderRadius: '50%',
               marginBottom: '30px',
               animation: 'scaleIn 0.5s ease-in-out 0.2s both'
@@ -149,7 +149,7 @@ const Register = () => {
             <h1 style={{
               fontSize: '32px',
               fontWeight: '700',
-              color: '#34a853',
+              color: '#1A73E8',
               marginBottom: '20px',
               animation: 'fadeIn 0.5s ease-in-out 0.4s both'
             }}>
@@ -201,14 +201,14 @@ const Register = () => {
 
             <div style={{
               padding: '15px',
-              background: '#e8f5e9',
+              background: '#e3f2fd',
               borderRadius: '8px',
               marginBottom: '30px',
               animation: 'fadeIn 0.5s ease-in-out 1s both'
             }}>
               <p style={{
                 fontSize: '13px',
-                color: '#2d8f47',
+                color: '#0F4C81',
                 margin: 0,
                 lineHeight: '1.6'
               }}>
@@ -223,23 +223,23 @@ const Register = () => {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '14px 32px',
-                background: 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+                background: 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
                 color: 'white',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontWeight: '600',
                 fontSize: '14px',
-                boxShadow: '0 4px 15px rgba(52, 168, 83, 0.3)',
+                boxShadow: '0 4px 15px rgba(26, 115, 232, 0.3)',
                 transition: 'all 0.3s ease',
                 animation: 'fadeIn 0.5s ease-in-out 1.2s both'
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 6px 20px rgba(52, 168, 83, 0.4)';
+                e.target.style.boxShadow = '0 6px 20px rgba(26, 115, 232, 0.4)';
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 4px 15px rgba(52, 168, 83, 0.3)';
+                e.target.style.boxShadow = '0 4px 15px rgba(26, 115, 232, 0.3)';
               }}
             >
               <ArrowLeft size={18} />
@@ -299,7 +299,7 @@ const Register = () => {
         
         .illustration-panel {
           flex: 1;
-          background: linear-gradient(135deg, #34a853 0%, #2d8f47 100%);
+          background: linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -348,7 +348,7 @@ const Register = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+        background: 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
         padding: '0',
         margin: '0',
         overflow: 'hidden',
@@ -367,7 +367,7 @@ const Register = () => {
                 marginBottom: '20px',
                 textShadow: '0 2px 10px rgba(0,0,0,0.2)'
               }}>
-                QuadraCerta
+                AgendaCerta
               </h1>
               <p style={{
                 fontSize: '18px',
@@ -375,7 +375,7 @@ const Register = () => {
                 marginBottom: '40px',
                 textShadow: '0 2px 10px rgba(0,0,0,0.2)'
               }}>
-                Gestão completa para complexos esportivos
+                Gestão completa para agendamentos e serviços
               </p>
               <div style={{
                 fontSize: '14px',
@@ -786,11 +786,11 @@ const Register = () => {
                     fontSize: '14px',
                     fontWeight: '600',
                     color: 'white',
-                    background: loading ? '#999' : 'linear-gradient(135deg, #34a853 0%, #2d8f47 100%)',
+                    background: loading ? '#999' : 'linear-gradient(135deg, #1A73E8 0%, #0F4C81 100%)',
                     border: 'none',
                     borderRadius: '8px',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 15px rgba(52, 168, 83, 0.3)',
+                    boxShadow: '0 4px 15px rgba(26, 115, 232, 0.3)',
                     transition: 'all 0.3s ease',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px'
@@ -798,13 +798,13 @@ const Register = () => {
                   onMouseEnter={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 6px 20px rgba(52, 168, 83, 0.4)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(26, 115, 232, 0.4)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!loading) {
                       e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(52, 168, 83, 0.3)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(26, 115, 232, 0.3)';
                     }
                   }}
                 >
@@ -821,7 +821,7 @@ const Register = () => {
                   <Link
                     to="/login"
                     style={{
-                      color: '#34a853',
+                      color: '#1A73E8',
                       textDecoration: 'none',
                       fontWeight: '600'
                     }}
