@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String   @unique
+  password      String
+  cpf           String?
+  cnpj          String?
+  phone         String
+  role          Role     @default(ADMIN)
+  complexId     String?
+  complex       Complex? @relation(fields: [complexId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  status        UserStatus  @default(PENDING) 
+  permissions   UserPermission[]
+  
+  @@map("users")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  module      String
+  action      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  
+  users       UserPermission[]
+  
+  @@unique([module, action])
+  @@map("permissions")
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  
+  @@unique([userId, permissionId])
+  @@map("user_permissions")
+}
+
+model Complex {
+  id          String      @id @default(uuid())
+  name        String      // ✅ SEM @unique
+  cnpj        String      @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  users       User[]
+  courts      Court[]
+  clients     Client[]
+  products    Product[]
+  courtTypes  CourtType[]
+  
+  @@map("complexes")
+}
+
+model CourtType {
+  id          String    @id @default(uuid())
+  name        String
+  isDefault   Boolean   @default(false)
+  complexId   String?
+  complex     Complex?  @relation(fields: [complexId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  courts      Court[]
+  
+  @@unique([name, complexId])
+  @@map("court_types")
+}
+
+model Court {
+  id            String       @id @default(uuid())
+  name          String
+  courtTypeId   String
+  courtType     CourtType    @relation(fields: [courtTypeId], references: [id])
+  capacity      Int          @default(10)
+  pricePerHour  Float
+  description   String?
+  status        CourtStatus  @default(AVAILABLE)
+  complexId     String
+  complex       Complex      @relation(fields: [complexId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  reservations  Reservation[]
+  
+  @@map("courts")
+}
+
+model Client {
+  id          String   @id @default(uuid())
+  fullName    String
+  phone       String
+  email       String?
+  cpf         String?
+  complexId   String
+  complex     Complex  @relation(fields: [complexId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  reservations Reservation[]
+  tabs         Tab[]
+  
+  @@map("clients")
+}
+
+model Reservation {
+  id              String            @id @default(uuid())
+  courtId         String
+  court           Court             @relation(fields: [courtId], references: [id])
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id])
+  startTime       DateTime
+  endTime         DateTime
+  status          ReservationStatus @default(CONFIRMED)
+  isRecurring     Boolean           @default(false)
+  recurringGroupId String?
+  recurringGroup  RecurringGroup?   @relation(fields: [recurringGroupId], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  tabs            Tab[]
+  
+  @@map("reservations")
+}
+
+model RecurringGroup {
+  id            String   @id @default(uuid())
+  frequency     String
+  dayOfWeek     Int?
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  reservations  Reservation[]
+  
+  @@map("recurring_groups")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  unit        String
+  expiryDate  DateTime?
+  complexId   String
+  complex     Complex  @relation(fields: [complexId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tabItems    TabItem[]
+  stockMovements StockMovement[]
+  
+  @@map("products")
+}
+
+model StockMovement {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  type        String
+  quantity    Int
+  reason      String?
+  createdAt   DateTime @default(now())
+  
+  @@map("stock_movements")
+}
+
+model Tab {
+  id            String      @id @default(uuid())
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id])
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  total         Float       @default(0)
+  status        TabStatus   @default(OPEN)
+  paidAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  items         TabItem[]
+  
+  @@map("tabs")
+}
+
+model TabItem {
+  id          String   @id @default(uuid())
+  tabId       String
+  tab         Tab      @relation(fields: [tabId], references: [id])
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  description String
+  quantity    Int
+  unitPrice   Float
+  total       Float
+  createdAt   DateTime @default(now())
+  
+  @@map("tab_items")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  SEMI_ADMIN
+}
+
+enum CourtStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+}
+
+enum TabStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
