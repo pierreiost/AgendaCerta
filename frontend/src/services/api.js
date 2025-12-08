@@ -142,4 +142,10 @@ export const notificationService = {
   getSummary: () => api.get('/notifications/summary'),
 };
 
+export const googleCalendarService = {
+  getStatus: () => api.get('/google-calendar/status'),
+  getAuthUrl: () => api.get('/google-calendar/auth'),
+  startWatch: () => api.post('/google-calendar/watch', {}),
+};
+
 export default api;

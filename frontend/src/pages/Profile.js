@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Settings, Shield, MapPin, Users, X, Eye, EyeOff, Lock, CheckCircle } from 'lucide-react';
 import axios from 'axios';
+import GoogleCalendarIntegration from '../components/GoogleCalendarIntegration';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -220,6 +221,10 @@ const Profile = () => {
           )}
           
           <h3 className="text-xl font-bold" style={{ marginBottom: '1rem' }}>Configurações</h3>
+          
+          {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+            <GoogleCalendarIntegration />
+          )}
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <button 
