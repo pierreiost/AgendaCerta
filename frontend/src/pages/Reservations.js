@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Filter,
   CheckCircle,
+  XCircle,
   CheckSquare,
   Square,
   UserPlus,
@@ -340,8 +341,7 @@ const Reservations = () => {
         courtId: formData.courtId,
         clientId: formData.clientId,
         startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        durationInHours: duration,
+        durationInHours: duration, // O backend calcula o endTime
         isRecurring: formData.isRecurring
       };
 
@@ -353,6 +353,7 @@ const Reservations = () => {
         }
       }
 
+      // O backend agora lida com a criação e sincronização com o Google Calendar
       await reservationService.create(reservationData);
       setSuccess('Reserva criada com sucesso!');
       closeModal();
@@ -945,6 +946,17 @@ const Reservations = () => {
                       }}>
                         {getCourtName(reservation.courtId)}
                       </h3>
+                      {reservation.googleCalendarEventId ? (
+                        <span title="Sincronizado com Google Calendar" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                          <CheckCircle size={16} className="text-green-500" />
+                          <span style={{ fontSize: '0.75rem', color: '#10b981' }}>Sync</span>
+                        </span>
+                      ) : (
+                        <span title="Não sincronizado com Google Calendar" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                          <XCircle size={16} className="text-red-500" />
+                          <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>No Sync</span>
+                        </span>
+                      )}
                       {reservation.isRecurring && (
                         <RefreshCw size={16} style={{ color: '#fbbc04' }} />
                       )}
