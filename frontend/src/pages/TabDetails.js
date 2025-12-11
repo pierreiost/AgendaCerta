@@ -243,7 +243,7 @@ const TabDetails = () => {
                 </p>
                 {tab.reservation && (
                   <p className="text-sm text-muted">
-                    Reserva: {tab.reservation.court.name}
+                    Reserva: {tab.reservation.resource.name}
                   </p>
                 )}
               </div>

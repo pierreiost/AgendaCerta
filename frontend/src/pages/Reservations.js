@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import MaskedInput from '../components/MaskedInput';
-import { reservationService, courtService, clientService, tabService } from '../services/api';
+import { reservationService, resourceService, clientService, tabService } from '../services/api';
 import { 
   Trash2, 
   PlusCircle, 
@@ -28,7 +28,7 @@ import { ptBR } from 'date-fns/locale';
 
 const Reservations = () => {
   const [reservations, setReservations] = useState([]);
-  const [courts, setCourts] = useState([]);
+  const [resources, setCourts] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -58,7 +58,7 @@ const Reservations = () => {
   });
   
   const [formData, setFormData] = useState({
-    courtId: '',
+    resourceId: '',
     clientId: '',
     date: '',
     time: '',
@@ -88,14 +88,14 @@ const Reservations = () => {
 
   const loadData = async () => {
     try {
-      const [reservationsRes, courtsRes, clientsRes] = await Promise.all([
+      const [reservationsRes, resourcesRes, clientsRes] = await Promise.all([
         reservationService.getAll(),
-        courtService.getAll(),
+        resourceService.getAll(),
         clientService.getAll()
       ]);
 
       setReservations(reservationsRes.data);
-      setCourts(courtsRes.data);
+      setCourts(resourcesRes.data);
       setClients(clientsRes.data);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -208,10 +208,10 @@ const Reservations = () => {
         return;
       }
 
-      const court = courts.find(c => c.id === reservation.courtId);
-      const courtPrice = court?.pricePerHour || 60;
+      const resource = resources.find(c => c.id === reservation.resourceId);
+      const resourcePrice = resource?.pricePerHour || 60;
       const duration = reservation.durationInHours || 1;
-      const total = courtPrice * duration;
+      const total = resourcePrice * duration;
       
       setPaymentFormData({
         reservationId: reservation.id,
@@ -291,8 +291,8 @@ const Reservations = () => {
     e.preventDefault();
     setError('');
 
-    if (!formData.courtId) {
-      setError('Selecione uma quadra');
+    if (!formData.resourceId) {
+      setError('Selecione uma recurso');
       return;
     }
 
@@ -338,7 +338,7 @@ const Reservations = () => {
       const endDateTime = addHours(startDateTime, duration);
 
       const reservationData = {
-        courtId: formData.courtId,
+        resourceId: formData.resourceId,
         clientId: formData.clientId,
         startTime: startDateTime.toISOString(),
         durationInHours: duration, // O backend calcula o endTime
@@ -446,7 +446,7 @@ const Reservations = () => {
 
   const resetForm = () => {
     setFormData({
-      courtId: '',
+      resourceId: '',
       clientId: '',
       date: '',
       time: '',
@@ -462,7 +462,7 @@ const Reservations = () => {
     let filtered = reservations;
 
     if (selectedCourt) {
-      filtered = filtered.filter(r => r.courtId === selectedCourt);
+      filtered = filtered.filter(r => r.resourceId === selectedCourt);
     }
 
     if (selectedDate) {
@@ -479,9 +479,9 @@ const Reservations = () => {
     return filtered.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
   };
 
-  const getCourtName = (courtId) => {
-    const court = courts.find(c => c.id === courtId);
-    return court ? court.name : 'Quadra não encontrada';
+  const getCourtName = (resourceId) => {
+    const resource = resources.find(c => c.id === resourceId);
+    return resource ? resource.name : 'Recurso não encontrada';
   };
 
   const getClientName = (clientId) => {
@@ -669,7 +669,7 @@ const Reservations = () => {
                 color: 'var(--text-primary)'
               }}>
                 <MapPin size={16} style={{ color: '#34a853' }} />
-                Quadra
+                Recurso
               </label>
               <select
                 id="filterCourt"
@@ -685,10 +685,10 @@ const Reservations = () => {
                   width: '100%'
                 }}
               >
-                <option value="">Todas as quadras</option>
-                {courts.map((court) => (
-                  <option key={court.id} value={court.id}>
-                    {court.name}
+                <option value="">Todas as recursos</option>
+                {resources.map((resource) => (
+                  <option key={resource.id} value={resource.id}>
+                    {resource.name}
                   </option>
                 ))}
               </select>
@@ -944,7 +944,7 @@ const Reservations = () => {
                         fontWeight: '600',
                         color: '#202124'
                       }}>
-                        {getCourtName(reservation.courtId)}
+                        {getCourtName(reservation.resourceId)}
                       </h3>
                       {reservation.googleCalendarEventId ? (
                         <span title="Sincronizado com Google Calendar" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
@@ -1198,14 +1198,14 @@ const Reservations = () => {
               )}
 
               <div className="input-group">
-                <label htmlFor="courtId">
+                <label htmlFor="resourceId">
                   <MapPin size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                  Quadra
+                  Recurso
                 </label>
                 <select
-                  id="courtId"
-                  name="courtId"
-                  value={formData.courtId}
+                  id="resourceId"
+                  name="resourceId"
+                  value={formData.resourceId}
                   onChange={handleInputChange}
                   required
                   style={{
@@ -1216,10 +1216,10 @@ const Reservations = () => {
                     width: '100%'
                   }}
                 >
-                  <option value="">Selecione uma quadra</option>
-                  {courts.map((court) => (
-                    <option key={court.id} value={court.id}>
-                      {court.name}
+                  <option value="">Selecione uma recurso</option>
+                  {resources.map((resource) => (
+                    <option key={resource.id} value={resource.id}>
+                      {resource.name}
                     </option>
                   ))}
                 </select>
@@ -1910,7 +1910,7 @@ const Reservations = () => {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#166534', fontWeight: '600' }}>
                     <MapPin size={16} />
-                    Quadra: {courts.find(c => c.id === paymentFormData.reservationData.courtId)?.name}
+                    Recurso: {resources.find(c => c.id === paymentFormData.reservationData.resourceId)?.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#166534', fontSize: '0.875rem' }}>
                     <Clock size={16} />

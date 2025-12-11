@@ -62,7 +62,7 @@ const Users = () => {
         (p.module === 'dashboard' && p.action === 'view') ||
         (p.module === 'products' && p.action === 'view') ||
         (p.module === 'clients' && p.action === 'view') ||
-        (p.module === 'courts' && p.action === 'view') ||
+        (p.module === 'resources' && p.action === 'view') ||
         (p.module === 'reservations' && p.action === 'view') ||
         (p.module === 'tabs' && p.action === 'view') ||
         (p.module === 'notifications' && p.action === 'view')

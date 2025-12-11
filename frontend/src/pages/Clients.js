@@ -611,7 +611,7 @@ const Clients = () => {
                                         color: '#111827',
                                         margin: 0
                                       }}>
-                                        {reservation.court.name}
+                                        {reservation.resource.name}
                                       </p>
                                       <p style={{ 
                                         fontSize: '0.75rem',
@@ -693,7 +693,7 @@ const Clients = () => {
                                           color: '#111827',
                                           margin: 0
                                         }}>
-                                          {reservation.court.name}
+                                          {reservation.resource.name}
                                         </p>
                                         {reservation.status === 'CANCELLED' && (
                                           <span style={{

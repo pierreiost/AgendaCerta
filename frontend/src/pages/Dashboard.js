@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import MaskedInput from '../components/MaskedInput';
-import { dashboardService, courtService, clientService, reservationService } from '../services/api';
+import { dashboardService, resourceService, clientService, reservationService } from '../services/api';
 import { 
   MapPin, 
   Users, 
@@ -36,7 +36,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const [courts, setCourts] = useState([]);
+  const [resources, setCourts] = useState([]);
   const [clients, setClients] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ const Dashboard = () => {
   const [showPastReservations, setShowPastReservations] = useState(true);
 
   const [formData, setFormData] = useState({
-    courtId: '',
+    resourceId: '',
     clientId: '',
     date: '',
     time: '',
@@ -88,15 +88,15 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const [statsRes, courtsRes, reservationsRes, clientsRes] = await Promise.all([
+      const [statsRes, resourcesRes, reservationsRes, clientsRes] = await Promise.all([
         dashboardService.getOverview(),
-        courtService.getAll(),
+        resourceService.getAll(),
         reservationService.getAll(),
         clientService.getAll()
       ]);
 
       setStats(statsRes.data);
-      setCourts(courtsRes.data);
+      setCourts(resourcesRes.data);
       setReservations(reservationsRes.data);
       setClients(clientsRes.data);
 
@@ -124,7 +124,7 @@ const Dashboard = () => {
       })
       .map(res => ({
         id: res.id,
-        title: `${res.client.fullName} (${res.court.name})`,
+        title: `${res.client.fullName} (${res.resource.name})`,
         start: res.startTime,
         end: res.endTime,
         className: res.status === 'PENDING' ? 'event-pending' : 'event-confirmed'
@@ -222,7 +222,7 @@ const Dashboard = () => {
     setShowModal(false);
     setUseCustomTime(false);
     setFormData({
-      courtId: '',
+      resourceId: '',
       clientId: '',
       date: '',
       time: '',
@@ -286,8 +286,8 @@ const Dashboard = () => {
     e.preventDefault();
     setError('');
 
-    if (!formData.courtId) {
-      setError('Selecione uma quadra');
+    if (!formData.resourceId) {
+      setError('Selecione um recurso');
       return;
     }
 
@@ -334,7 +334,7 @@ const Dashboard = () => {
       const endDateTime = addHours(startDateTime, duration);
 
       const reservationData = {
-        courtId: formData.courtId,
+        resourceId: formData.resourceId,
         clientId: formData.clientId,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
@@ -386,11 +386,11 @@ const Dashboard = () => {
         )}
 
         <div className="grid grid-4" style={{ marginBottom: '2rem' }}>
-          <div className="card" style={{ cursor: 'pointer' }} onClick={() => navigate('/courts')}>
+          <div className="card" style={{ cursor: 'pointer' }} onClick={() => navigate('/resources')}>
             <div className="flex-between">
               <div>
-                <p className="text-muted text-sm">Total de Quadras</p>
-                <h3 className="text-2xl font-bold">{stats?.courts.total || 0}</h3>
+                <p className="text-muted text-sm">Total de Recursos</p>
+                <h3 className="text-2xl font-bold">{stats?.resources.total || 0}</h3>
               </div>
               <div style={{ 
                 width: '60px', 
@@ -491,7 +491,7 @@ const Dashboard = () => {
           </button>
           <button 
             className="btn btn-primary"
-            onClick={() => navigate('/courts')}
+            onClick={() => navigate('/resources')}
             style={{ 
               width: '100%',
               padding: '0.75rem 1rem',
@@ -693,7 +693,7 @@ const Dashboard = () => {
                 <div className="grid grid-2" style={{ gap: '1.5rem', marginBottom: '1.5rem' }}>
                   <div className="input-group" style={{ marginBottom: 0 }}>
                     <label 
-                      htmlFor="courtId"
+                      htmlFor="resourceId"
                       style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
@@ -707,9 +707,9 @@ const Dashboard = () => {
                       Selecione a Quadra
                     </label>
                     <select
-                      id="courtId"
-                      name="courtId"
-                      value={formData.courtId}
+                      id="resourceId"
+                      name="resourceId"
+                      value={formData.resourceId}
                       onChange={handleInputChange}
                       required
                       style={{
@@ -725,11 +725,11 @@ const Dashboard = () => {
                       onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
                     >
                       <option value="">Escolha a quadra</option>
-                      {courts
-                        .filter(court => court.status === 'AVAILABLE')
-                        .map(court => (
-                          <option key={court.id} value={court.id}>
-                            {court.name}
+                      {resources
+                        .filter(resource => resource.status === 'AVAILABLE')
+                        .map(resource => (
+                          <option key={resource.id} value={resource.id}>
+                            {resource.name}
                           </option>
                         ))}
                     </select>

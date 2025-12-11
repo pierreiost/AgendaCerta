@@ -305,7 +305,7 @@ const Tabs = () => {
                       <div className="flex" style={{ alignItems: 'center', gap: '0.5rem' }}>
                         <Clock size={14} style={{ color: 'var(--text-light)' }} />
                         <span className="text-sm text-muted">
-                          {tab.reservation.court.name} - {format(new Date(tab.reservation.startTime), "dd/MM HH:mm", { locale: ptBR })}
+                          {tab.reservation.resource.name} - {format(new Date(tab.reservation.startTime), "dd/MM HH:mm", { locale: ptBR })}
                         </span>
                       </div>
                     )}
