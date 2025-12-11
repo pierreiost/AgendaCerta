@@ -395,7 +395,7 @@ const Dashboard = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                background: 'linear-gradient(135deg, #1A73E8, #0050B3)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -416,7 +416,7 @@ const Dashboard = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                background: 'linear-gradient(135deg, #34a853, #2d8e47)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -437,7 +437,7 @@ const Dashboard = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                background: 'linear-gradient(135deg, #fbbc04, #e0a800)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -458,7 +458,7 @@ const Dashboard = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                background: 'linear-gradient(135deg, #ea4335, #d93025)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -1183,7 +1183,7 @@ const Dashboard = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+              background: 'linear-gradient(135deg, #34a853, #2d8e47)',
               color: 'white',
               padding: '2rem',
               borderRadius: '16px 16px 0 0',
