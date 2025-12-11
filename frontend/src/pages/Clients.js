@@ -345,7 +345,7 @@ const Clients = () => {
                         width: '48px',
                         height: '48px',
                         borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                        background: 'linear-gradient(135deg, #1A73E8, #0050B3)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -462,7 +462,7 @@ const Clients = () => {
                       border: 'none',
                       borderTop: '1px solid var(--border-color)',
                       background: isExpanded ? '#f9fafb' : 'white',
-                      color: '#3b82f6',
+                      color: '#1A73E8',
                       fontSize: '0.875rem',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -519,7 +519,7 @@ const Clients = () => {
                                 gap: '0.5rem',
                                 marginBottom: '0.5rem'
                               }}>
-                                <Calendar size={18} color="#3b82f6" />
+                                <Calendar size={18} color="#1A73E8" />
                                 <span style={{ 
                                   fontSize: '0.75rem', 
                                   color: '#6b7280',
@@ -551,7 +551,7 @@ const Clients = () => {
                                 gap: '0.5rem',
                                 marginBottom: '0.5rem'
                               }}>
-                                <DollarSign size={18} color="#3b82f6" />
+                                <DollarSign size={18} color="#1A73E8" />
                                 <span style={{ 
                                   fontSize: '0.75rem', 
                                   color: '#6b7280',
@@ -583,7 +583,7 @@ const Clients = () => {
                                 alignItems: 'center',
                                 gap: '0.5rem'
                               }}>
-                                <TrendingUp size={16} color="#3b82f6" />
+                                <TrendingUp size={16} color="#1A73E8" />
                                 Próximas Reservas
                               </h4>
                               <div style={{ 
@@ -626,7 +626,7 @@ const Clients = () => {
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: '0.25rem',
-                                      color: '#3b82f6',
+                                      color: '#1A73E8',
                                       fontSize: '0.75rem',
                                       fontWeight: '600'
                                     }}>
@@ -649,7 +649,7 @@ const Clients = () => {
                               alignItems: 'center',
                               gap: '0.5rem'
                             }}>
-                              <History size={16} color="#3b82f6" />
+                              <History size={16} color="#1A73E8" />
                               Histórico de Reservas
                             </h4>
                             
