@@ -21,67 +21,67 @@ const validate = (req, res, next) => {
   next();
 };
 
-// Listar quadras
-router.get('/', authMiddleware, checkPermission('courts', 'view'), async (req, res) => {
+// Listar recursos
+router.get('/', authMiddleware, checkPermission('resources', 'view'), async (req, res) => {
   try {
-    const courts = await prisma.court.findMany({
+    const resources = await prisma.resource.findMany({
       where: { complexId: req.user.complexId },
       include: {
-        courtType: true
+        resourceType: true
       },
       orderBy: { name: 'asc' }
     });
 
-    res.json(courts);
+    res.json(resources);
   } catch (error) {
-    console.error('Erro ao listar quadras:', error);
-    res.status(500).json({ error: 'Erro ao listar quadras' });
+    console.error('Erro ao listar recursos:', error);
+    res.status(500).json({ error: 'Erro ao listar recursos' });
   }
 });
 
-// Buscar quadra por ID
+// Buscar recurso por ID
 router.get('/:id',
   authMiddleware,
-  checkPermission('courts', 'view'),
+  checkPermission('resources', 'view'),
   [
     param('id').isUUID().withMessage('ID inválido'),
     validate
   ],
   async (req, res) => {
     try {
-      const court = await prisma.court.findFirst({
+      const resource = await prisma.resource.findFirst({
         where: {
           id: req.params.id,
           complexId: req.user.complexId
         },
         include: {
-          courtType: true
+          resourceType: true
         }
       });
 
-      if (!court) {
-        return res.status(404).json({ error: 'Quadra não encontrada' });
+      if (!resource) {
+        return res.status(404).json({ error: 'Recurso não encontrada' });
       }
 
-      res.json(court);
+      res.json(resource);
     } catch (error) {
-      console.error('Erro ao buscar quadra:', error);
-      res.status(500).json({ error: 'Erro ao buscar quadra' });
+      console.error('Erro ao buscar recurso:', error);
+      res.status(500).json({ error: 'Erro ao buscar recurso' });
     }
   }
 );
 
-// Criar quadra
+// Criar recurso
 router.post('/',
   authMiddleware,
-  checkPermission('courts', 'create'),
+  checkPermission('resources', 'create'),
   [
     body('name')
       .trim()
       .notEmpty().withMessage('Nome é obrigatório')
       .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
-    body('courtTypeId')
-      .isUUID().withMessage('Tipo de quadra inválido'),
+    body('resourceTypeId')
+      .isUUID().withMessage('Tipo de recurso inválido'),
     body('pricePerHour')
       .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
     body('description')
@@ -95,11 +95,11 @@ router.post('/',
   ],
   async (req, res) => {
     try {
-      const { name, courtTypeId, pricePerHour, description, status } = req.body;
+      const { name, resourceTypeId, pricePerHour, description, status } = req.body;
 
-      const courtType = await prisma.courtType.findFirst({
+      const resourceType = await prisma.resourceType.findFirst({
         where: {
-          id: courtTypeId,
+          id: resourceTypeId,
           OR: [
             { complexId: req.user.complexId },
             { isDefault: true }
@@ -107,45 +107,45 @@ router.post('/',
         }
       });
 
-      if (!courtType) {
-        return res.status(404).json({ error: 'Tipo de quadra não encontrado' });
+      if (!resourceType) {
+        return res.status(404).json({ error: 'Tipo de recurso não encontrado' });
       }
 
-      const court = await prisma.court.create({
+      const resource = await prisma.resource.create({
         data: {
           name: name.trim(),
-          courtTypeId,
+          resourceTypeId,
           pricePerHour: parseFloat(pricePerHour),
           description: description?.trim() || null,
           status: status || 'AVAILABLE',
           complexId: req.user.complexId
         },
         include: {
-          courtType: true
+          resourceType: true
         }
       });
 
-      res.status(201).json(court);
+      res.status(201).json(resource);
     } catch (error) {
-      console.error('Erro ao criar quadra:', error);
-      res.status(500).json({ error: 'Erro ao criar quadra' });
+      console.error('Erro ao criar recurso:', error);
+      res.status(500).json({ error: 'Erro ao criar recurso' });
     }
   }
 );
 
-// Atualizar quadra
+// Atualizar recurso
 router.put('/:id',
   authMiddleware,
-  checkPermission('courts', 'edit'),
+  checkPermission('resources', 'edit')t'),
   [
     param('id').isUUID().withMessage('ID inválido'),
     body('name')
       .optional()
       .trim()
       .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
-    body('courtTypeId')
+    body('resourceTypeId')
       .optional()
-      .isUUID().withMessage('Tipo de quadra inválido'),
+      .isUUID().withMessage('Tipo de recurso inválido'),
     body('pricePerHour')
       .optional()
       .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
@@ -160,23 +160,23 @@ router.put('/:id',
   ],
   async (req, res) => {
     try {
-      const { name, courtTypeId, pricePerHour, description, status } = req.body;
+      const { name, resourceTypeId, pricePerHour, description, status } = req.body;
 
-      const court = await prisma.court.findFirst({
+      const resource = await prisma.resource.findFirst({
         where: {
           id: req.params.id,
           complexId: req.user.complexId
         }
       });
 
-      if (!court) {
-        return res.status(404).json({ error: 'Quadra não encontrada' });
+      if (!resource) {
+        return res.status(404).json({ error: 'Recurso não encontrada' });
       }
 
-      if (courtTypeId) {
-        const courtType = await prisma.courtType.findFirst({
+      if (resourceTypeId) {
+        const resourceType = await prisma.resourceType.findFirst({
           where: {
-            id: courtTypeId,
+            id: resourceTypeId,
             OR: [
               { complexId: req.user.complexId },
               { isDefault: true }
@@ -184,52 +184,52 @@ router.put('/:id',
           }
         });
 
-        if (!courtType) {
-          return res.status(404).json({ error: 'Tipo de quadra não encontrado' });
+        if (!resourceType) {
+          return res.status(404).json({ error: 'Tipo de recurso não encontrado' });
         }
       }
 
-      const updatedCourt = await prisma.court.update({
+      const updatedResource = await prisma.resource.update({
         where: { id: req.params.id },
         data: {
           ...(name && { name: name.trim() }),
-          ...(courtTypeId && { courtTypeId }),
+          ...(resourceTypeId && { resourceTypeId }),
           ...(pricePerHour && { pricePerHour: parseFloat(pricePerHour) }),
           ...(description !== undefined && { description: description?.trim() || null }),
           ...(status && { status })
         },
         include: {
-          courtType: true
+          resourceType: true
         }
       });
 
-      res.json(updatedCourt);
+      res.json(updatedResource);
     } catch (error) {
-      console.error('Erro ao atualizar quadra:', error);
-      res.status(500).json({ error: 'Erro ao atualizar quadra' });
+      console.error('Erro ao atualizar recurso:', error);
+      res.status(500).json({ error: 'Erro ao atualizar recurso' });
     }
   }
 );
 
-// Deletar quadra
+// Deletar recurso
 router.delete('/:id',
   authMiddleware,
-  checkPermission('courts', 'delete'),
+  ccheckPermission('resources', 'delete')'),
   [
     param('id').isUUID().withMessage('ID inválido'),
     validate
   ],
   async (req, res) => {
     try {
-      const court = await prisma.court.findFirst({
+      const resource = await prisma.resource.findFirst({
         where: {
           id: req.params.id,
           complexId: req.user.complexId
         }
       });
 
-      if (!court) {
-        return res.status(404).json({ error: 'Quadra não encontrada' });
+      if (!resource) {
+        return res.status(404).json({ error: 'Recurso não encontrada' });
       }
 
       const now = new Date();
@@ -237,7 +237,7 @@ router.delete('/:id',
       // Verifica apenas reservas FUTURAS e ATIVAS
       const activeReservations = await prisma.reservation.count({
         where: {
-          courtId: req.params.id,
+          resourceId: req.params.id,
           status: { not: 'CANCELLED' },
           startTime: { gte: now }
         }
@@ -245,16 +245,16 @@ router.delete('/:id',
 
       if (activeReservations > 0) {
         return res.status(409).json({ 
-          error: 'Não é possível deletar quadra com reservas futuras ativas',
+          error: 'Não é possível deletar recurso com reservas futuras ativas',
           activeReservations: activeReservations
         });
       }
 
       // Usa transação para deletar tudo na ordem correta
       await prisma.$transaction(async (tx) => {
-        // 1. Busca todas as reservas da quadra
+        // 1. Busca todas as reservas da recurso
         const reservations = await tx.reservation.findMany({
-          where: { courtId: req.params.id },
+          where: { resourceId: req.params.id },
           select: { id: true }
         });
 
@@ -285,20 +285,20 @@ router.delete('/:id',
 
           // 5. Deleta as reservas
           await tx.reservation.deleteMany({
-            where: { courtId: req.params.id }
+            where: { resourceId: req.params.id }
           });
         }
 
-        // 6. Finalmente deleta a quadra
-        await tx.court.delete({
+        // 6. Finalmente deleta a recurso
+        await tx.resource.delete({
           where: { id: req.params.id }
         });
       });
 
-      res.json({ message: 'Quadra deletada com sucesso' });
+      res.json({ message: 'Recurso deletada com sucesso' });
     } catch (error) {
-      console.error('Erro ao deletar quadra:', error);
-      res.status(500).json({ error: 'Erro ao deletar quadra' });
+      console.error('Erro ao deletar recurso:', error);
+      res.status(500).json({ error: 'Erro ao deletar recurso' });
     }
   }
 );

@@ -10,7 +10,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const userRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
-const courtRoutes = require('./routes/courts');
+const resourceRoutes = require('./routes/resources');
 const clientRoutes = require('./routes/clients');
 const reservationRoutes = require('./routes/reservations');
 const productRoutes = require('./routes/products');
@@ -19,7 +19,8 @@ const dashboardRoutes = require('./routes/dashboard');
 const notificationRoutes = require('./routes/notifications');
 const permissionRoutes = require('./routes/permissions');
 const adminRoutes = require('./routes/admin');
-const courtTypesRoutes = require('./routes/courtTypes');
+const resourceTypesRoutes = require('./routes/resourceTypes');
+const googleCalendarRoutes = require('./routes/googleCalendar');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -39,8 +40,8 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://quadracerta.site',
-  'https://www.quadracerta.site',
+  'https://agendacerta.site',
+  'https://www.agendacerta.site',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -103,7 +104,7 @@ app.use('/api/', generalLimiter);
 app.locals.prisma = prisma;
 
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/courts', courtRoutes);
+app.use('/api/resources', resourceRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/products', productRoutes);
@@ -113,12 +114,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/court-types', courtTypesRoutes);
+app.use('/api/resource-types', resourceTypesRoutes);
+app.use('/api/google-calendar', googleCalendarRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: 'QuadraCerta API is running',
+    message: 'AgendaCerta API is running',
     timestamp: new Date().toISOString()
   });
 });

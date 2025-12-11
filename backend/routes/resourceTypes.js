@@ -21,10 +21,10 @@ const validate = (req, res, next) => {
   next();
 };
 
-// Listar tipos de quadra (padrão + do complexo)
+// Listar tipos de recurso (padrão + do complexo)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const courtTypes = await prisma.courtType.findMany({
+    const resourceTypes = await prisma.resourceType.findMany({
       where: {
         OR: [
           { isDefault: true },
@@ -37,17 +37,17 @@ router.get('/', authMiddleware, async (req, res) => {
       ]
     });
 
-    res.json(courtTypes);
+    res.json(resourceTypes);
   } catch (error) {
-    console.error('Erro ao buscar tipos de quadra:', error);
-    res.status(500).json({ error: 'Erro ao buscar tipos de quadra' });
+    console.error('Erro ao buscar tipos de recurso:', error);
+    res.status(500).json({ error: 'Erro ao buscar tipos de recurso' });
   }
 });
 
-// Criar novo tipo de quadra
+// Criar novo tipo de recurso
 router.post('/', 
   authMiddleware, 
-  checkPermission('courts', 'create'),
+  checkPermission('resources', 'create'),
   [
     body('name')
       .trim()
@@ -60,7 +60,7 @@ router.post('/',
       const { name } = req.body;
 
       // Verificar se já existe
-      const existing = await prisma.courtType.findFirst({
+      const existing = await prisma.resourceType.findFirst({
         where: {
           name,
           OR: [
@@ -72,29 +72,29 @@ router.post('/',
 
       if (existing) {
         return res.status(409).json({ 
-          error: 'Já existe um tipo de quadra com este nome' 
+          error: 'Já existe um tipo de recurso com este nome' 
         });
       }
 
-      const courtType = await prisma.courtType.create({
+      const resourceType = await prisma.resourceType.create({
         data: {
           name: name.trim(),
           complexId: req.user.complexId
         }
       });
 
-      res.status(201).json(courtType);
+      res.status(201).json(resourceType);
     } catch (error) {
-      console.error('Erro ao criar tipo de quadra:', error);
-      res.status(500).json({ error: 'Erro ao criar tipo de quadra' });
+      console.error('Erro ao criar tipo de recurso:', error);
+      res.status(500).json({ error: 'Erro ao criar tipo de recurso' });
     }
   }
 );
 
-// Atualizar tipo de quadra (apenas tipos personalizados)
+// Atualizar tipo de recurso (apenas tipos personalizados)
 router.put('/:id',
   authMiddleware,
-  checkPermission('courts', 'edit'),
+  checkPermission('resources', 'edit'),
   [
     param('id').isUUID().withMessage('ID inválido'),
     body('name')
@@ -107,7 +107,7 @@ router.put('/:id',
     try {
       const { name } = req.body;
 
-      const courtType = await prisma.courtType.findFirst({
+      const resourceType = await prisma.resourceType.findFirst({
         where: {
           id: req.params.id,
           complexId: req.user.complexId,
@@ -115,14 +115,14 @@ router.put('/:id',
         }
       });
 
-      if (!courtType) {
+      if (!resourceType) {
         return res.status(404).json({ 
-          error: 'Tipo de quadra não encontrado ou não pode ser editado' 
+          error: 'Tipo de recurso não encontrado ou não pode ser editado' 
         });
       }
 
       // Verificar se o novo nome já existe
-      const existing = await prisma.courtType.findFirst({
+      const existing = await prisma.resourceType.findFirst({
         where: {
           name: name.trim(),
           id: { not: req.params.id },
@@ -135,65 +135,65 @@ router.put('/:id',
 
       if (existing) {
         return res.status(409).json({ 
-          error: 'Já existe um tipo de quadra com este nome' 
+          error: 'Já existe um tipo de recurso com este nome' 
         });
       }
 
-      const updated = await prisma.courtType.update({
+      const updated = await prisma.resourceType.update({
         where: { id: req.params.id },
         data: { name: name.trim() }
       });
 
       res.json(updated);
     } catch (error) {
-      console.error('Erro ao atualizar tipo de quadra:', error);
-      res.status(500).json({ error: 'Erro ao atualizar tipo de quadra' });
+      console.error('Erro ao atualizar tipo de recurso:', error);
+      res.status(500).json({ error: 'Erro ao atualizar tipo de recurso' });
     }
   }
 );
 
-// Deletar tipo de quadra (apenas tipos personalizados sem quadras vinculadas)
+// Deletar tipo de recurso (apenas tipos personalizados sem recursos vinculadas)
 router.delete('/:id',
   authMiddleware,
-  checkPermission('courts', 'delete'),
+  chcheckPermission('resources', 'delete')),
   [
     param('id').isUUID().withMessage('ID inválido'),
     validate
   ],
   async (req, res) => {
     try {
-      const courtType = await prisma.courtType.findFirst({
+      const resourceType = await prisma.resourceType.findFirst({
         where: {
           id: req.params.id,
           complexId: req.user.complexId,
           isDefault: false
         },
         include: {
-          courts: true
+          resources: true
         }
       });
 
-      if (!courtType) {
+      if (!resourceType) {
         return res.status(404).json({ 
-          error: 'Tipo de quadra não encontrado ou não pode ser excluído' 
+          error: 'Tipo de recurso não encontrado ou não pode ser excluído' 
         });
       }
 
-      if (courtType.courts.length > 0) {
+      if (resourceType.resources.length > 0) {
         return res.status(409).json({ 
-          error: 'Não é possível excluir tipo de quadra com quadras vinculadas',
-          courtsCount: courtType.courts.length
+          error: 'Não é possível excluir tipo de recurso com recursos vinculadas',
+          resourcesCount: resourceType.resources.length
         });
       }
 
-      await prisma.courtType.delete({
+      await prisma.resourceType.delete({
         where: { id: req.params.id }
       });
 
-      res.json({ message: 'Tipo de quadra excluído com sucesso' });
+      res.json({ message: 'Tipo de recurso excluído com sucesso' });
     } catch (error) {
-      console.error('Erro ao deletar tipo de quadra:', error);
-      res.status(500).json({ error: 'Erro ao deletar tipo de quadra' });
+      console.error('Erro ao deletar tipo de recurso:', error);
+      res.status(500).json({ error: 'Erro ao deletar tipo de recurso' });
     }
   }
 );

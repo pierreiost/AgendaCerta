@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware } = require('../middleware/auth');
+const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('../services/googleCalendarService');
 const { checkPermission } = require('../middleware/permissions');
 
 const router = express.Router();
@@ -10,10 +11,10 @@ router.get('/', authMiddleware, checkPermission('reservations', 'view'), async (
   try {
     const reservations = await prisma.reservation.findMany({
       where: {
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       include: {
-        court: true,
+        resource: true,
         client: true
       },
       orderBy: { startTime: 'desc' }
@@ -31,10 +32,10 @@ router.get('/:id', authMiddleware, checkPermission('reservations', 'view'), asyn
     const reservation = await prisma.reservation.findFirst({
       where: {
         id: req.params.id,
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       include: {
-        court: true,
+        resource: true,
         client: true
       }
     });
@@ -52,17 +53,17 @@ router.get('/:id', authMiddleware, checkPermission('reservations', 'view'), asyn
 
 router.post('/', authMiddleware, checkPermission('reservations', 'create'), async (req, res) => {
   try {
-    const { courtId, clientId, startTime, durationInHours, isRecurring, frequency, endDate } = req.body;
+    const { resourceId, clientId, startTime, durationInHours, isRecurring, frequency, endDate } = req.body;
 
-    const court = await prisma.court.findFirst({
+    const resource = await prisma.resource.findFirst({
       where: {
-        id: courtId,
+        id: resourceId,
         complexId: req.user.complexId
       }
     });
 
-    if (!court) {
-      return res.status(404).json({ error: 'Quadra não encontrada' });
+    if (!resource) {
+      return res.status(404).json({ error: 'Recurso não encontrado' });
     }
 
     const client = await prisma.client.findFirst({
@@ -114,7 +115,7 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
 
         const conflict = await prisma.reservation.findFirst({
           where: {
-            courtId,
+            resourceId,
             status: { not: 'CANCELLED' },
             OR: [
               { AND: [{ startTime: { lte: reservationStart } }, { endTime: { gt: reservationStart } }] },
@@ -126,7 +127,7 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
 
         if (!conflict) {
           reservations.push({
-            courtId,
+            resourceId,
             clientId,
             startTime: reservationStart,
             endTime: reservationEnd,
@@ -163,7 +164,7 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
     } else {
       const conflict = await prisma.reservation.findFirst({
         where: {
-          courtId,
+          resourceId,
           status: { not: 'CANCELLED' },
           OR: [
             { AND: [{ startTime: { lte: start } }, { endTime: { gt: start } }] },
@@ -187,7 +188,7 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
 
       const reservation = await prisma.reservation.create({
         data: {
-          courtId,
+          resourceId,
           clientId,
           startTime: start,
           endTime: end,
@@ -195,10 +196,20 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
           status: 'CONFIRMED'
         },
         include: {
-          court: true,
+          resource: true,
           client: true
         }
       });
+
+      // Sincronização com Google Calendar
+      const googleCalendarEventId = await createCalendarEvent(req.user.complexId, reservation);
+      if (googleCalendarEventId) {
+        await prisma.reservation.update({
+          where: { id: reservation.id },
+          data: { googleCalendarEventId }
+        });
+        reservation.googleCalendarEventId = googleCalendarEventId;
+      }
 
       res.status(201).json(reservation);
     }
@@ -215,7 +226,7 @@ router.put('/:id', authMiddleware, checkPermission('reservations', 'edit'), asyn
     const reservation = await prisma.reservation.findFirst({
       where: {
         id: req.params.id,
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       include: {
         tabs: { where: { status: 'OPEN' } }
@@ -257,10 +268,15 @@ router.put('/:id', authMiddleware, checkPermission('reservations', 'edit'), asyn
         status
       },
       include: {
-        court: true,
+        resource: true,
         client: true
       }
     });
+
+    // Sincronização com Google Calendar
+    if (updatedReservation.googleCalendarEventId) {
+      await updateCalendarEvent(req.user.complexId, updatedReservation);
+    }
 
     res.json(updatedReservation);
   } catch (error) {
@@ -274,7 +290,7 @@ router.delete('/:id', authMiddleware, checkPermission('reservations', 'cancel'),
     const reservation = await prisma.reservation.findFirst({
       where: {
         id: req.params.id,
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       include: {
         tabs: { where: { status: 'OPEN' } }
@@ -290,6 +306,11 @@ router.delete('/:id', authMiddleware, checkPermission('reservations', 'cancel'),
         error: 'Não é possível cancelar reserva com comanda aberta. Feche as comandas primeiro.',
         openTabs: reservation.tabs.length
       });
+    }
+
+    // Excluir do Google Calendar se existir
+    if (reservation.googleCalendarEventId) {
+      await deleteCalendarEvent(req.user.complexId, reservation.googleCalendarEventId);
     }
 
     await prisma.reservation.update({
@@ -318,7 +339,7 @@ router.post('/cancel-multiple', authMiddleware, checkPermission('reservations', 
     const reservations = await prisma.reservation.findMany({
       where: {
         id: { in: reservationIds },
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       include: {
         tabs: { where: { status: 'OPEN' } }
@@ -338,10 +359,20 @@ router.post('/cancel-multiple', authMiddleware, checkPermission('reservations', 
       });
     }
 
+    // Obter os IDs dos eventos do Google Calendar antes de cancelar
+    const eventIdsToCancel = reservations
+      .filter(r => r.googleCalendarEventId)
+      .map(r => r.googleCalendarEventId);
+
+    // Cancelar no Google Calendar (assíncrono, não bloqueia a resposta)
+    eventIdsToCancel.forEach(eventId => {
+      deleteCalendarEvent(req.user.complexId, eventId).catch(console.error);
+    });
+
     const result = await prisma.reservation.updateMany({
       where: {
         id: { in: reservationIds },
-        court: { complexId: req.user.complexId }
+        resource: { complexId: req.user.complexId }
       },
       data: { status: 'CANCELLED' }
     });
@@ -363,7 +394,7 @@ router.delete('/recurring-group/:groupId', authMiddleware, checkPermission('rese
     const group = await prisma.recurringGroup.findFirst({
       where: { id: groupId },
       include: {
-        reservations: { include: { court: true } }
+        reservations: { include: { resource: true } }
       }
     });
 
@@ -372,11 +403,21 @@ router.delete('/recurring-group/:groupId', authMiddleware, checkPermission('rese
     }
 
     if (group.reservations.length > 0 && 
-        group.reservations[0].court.complexId !== req.user.complexId) {
+        group.reservations[0].resource.complexId !== req.user.complexId) {
       return res.status(403).json({ error: 'Sem permissão para cancelar este grupo' });
     }
 
     const now = new Date();
+    // Obter os IDs dos eventos do Google Calendar antes de cancelar
+    const eventIdsToCancel = group.reservations
+      .filter(r => r.googleCalendarEventId && r.startTime >= now && r.status !== 'CANCELLED')
+      .map(r => r.googleCalendarEventId);
+
+    // Cancelar no Google Calendar (assíncrono, não bloqueia a resposta)
+    eventIdsToCancel.forEach(eventId => {
+      deleteCalendarEvent(req.user.complexId, eventId).catch(console.error);
+    });
+
     const result = await prisma.reservation.updateMany({
       where: {
         recurringGroupId: groupId,

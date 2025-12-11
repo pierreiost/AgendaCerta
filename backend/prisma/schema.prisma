@@ -61,15 +61,16 @@ model Complex {
   updatedAt   DateTime    @updatedAt
   
   users       User[]
-  courts      Court[]
+  resources      Resource[]
   clients     Client[]
   products    Product[]
-  courtTypes  CourtType[]
+  resourceTypes  ResourceType[]
+  googleCalendarToken GoogleCalendarToken?
   
   @@map("complexes")
 }
 
-model CourtType {
+model ResourceType {
   id          String    @id @default(uuid())
   name        String
   isDefault   Boolean   @default(false)
@@ -78,21 +79,21 @@ model CourtType {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
-  courts      Court[]
+  resources      Resource[]
   
   @@unique([name, complexId])
-  @@map("court_types")
+  @@map("resource_types")
 }
 
-model Court {
+model Resource {
   id            String       @id @default(uuid())
   name          String
-  courtTypeId   String
-  courtType     CourtType    @relation(fields: [courtTypeId], references: [id])
+  resourceTypeId   String
+  courtType     ResourceType    @relation(fields: [resourceTypeId], references: [id])
   capacity      Int          @default(10)
   pricePerHour  Float
   description   String?
-  status        CourtStatus  @default(AVAILABLE)
+  status        ResourceStatus  @default(AVAILABLE)
   complexId     String
   complex       Complex      @relation(fields: [complexId], references: [id])
   createdAt     DateTime     @default(now())
@@ -100,7 +101,7 @@ model Court {
   
   reservations  Reservation[]
   
-  @@map("courts")
+  @@map("resources")
 }
 
 model Client {
@@ -122,8 +123,8 @@ model Client {
 
 model Reservation {
   id              String            @id @default(uuid())
-  courtId         String
-  court           Court             @relation(fields: [courtId], references: [id])
+  resourceId         String
+  court           Resource             @relation(fields: [resourceId], references: [id])
   clientId        String
   client          Client            @relation(fields: [clientId], references: [id])
   startTime       DateTime
@@ -132,6 +133,7 @@ model Reservation {
   isRecurring     Boolean           @default(false)
   recurringGroupId String?
   recurringGroup  RecurringGroup?   @relation(fields: [recurringGroupId], references: [id])
+  googleCalendarEventId String? // ID do evento no Google Calendar para sincronização
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   
@@ -223,7 +225,7 @@ enum Role {
   SEMI_ADMIN
 }
 
-enum CourtStatus {
+enum ResourceStatus {
   AVAILABLE
   OCCUPIED
   MAINTENANCE
@@ -246,4 +248,19 @@ enum UserStatus {
   ACTIVE
   REJECTED
   SUSPENDED
+}
+
+model GoogleCalendarToken {
+  id            String   @id @default(uuid())
+  complexId     String   @unique
+  complex       Complex  @relation(fields: [complexId], references: [id])
+  accessToken   String
+  refreshToken  String
+  expiryDate    DateTime
+  tokenType     String
+  scope         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("google_calendar_tokens")
 }

@@ -48,20 +48,20 @@ export const dashboardService = {
   getOccupancy: (params) => api.get('/dashboard/occupancy', { params }),
 };
 
-export const courtService = {
-  getAll: () => api.get('/courts'),
-  getById: (id) => api.get(`/courts/${id}`),
-  create: (data) => api.post('/courts', data),
-  update: (id, data) => api.put(`/courts/${id}`, data),
-  delete: (id) => api.delete(`/courts/${id}`),
+export const resourceService = {
+  getAll: () => api.get('/resources'),
+  getById: (id) => api.get(`/resources/${id}`),
+  create: (data) => api.post('/resources', data),
+  update: (id, data) => api.put(`/resources/${id}`, data),
+  delete: (id) => api.delete(`/resources/${id}`),
 };
 
-export const courtTypeService = {
-  getAll: () => api.get('/court-types'),
-  getById: (id) => api.get(`/court-types/${id}`),
-  create: (data) => api.post('/court-types', data),
-  update: (id, data) => api.put(`/court-types/${id}`, data),
-  delete: (id) => api.delete(`/court-types/${id}`),
+export const resourceTypeService = {
+  getAll: () => api.get('/resource-types'),
+  getById: (id) => api.get(`/resource-types/${id}`),
+  create: (data) => api.post('/resource-types', data),
+  update: (id, data) => api.put(`/resource-types/${id}`, data),
+  delete: (id) => api.delete(`/resource-types/${id}`),
 };
 
 export const clientService = {
