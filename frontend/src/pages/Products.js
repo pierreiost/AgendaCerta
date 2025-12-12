@@ -187,8 +187,8 @@ const Products = () => {
       <div className="container" style={{ padding: '2rem 1rem' }}>
         <div className="flex-between" style={{ marginBottom: '2rem' }}>
           <div>
-            <h1 className="text-2xl font-bold">Gerenciar Produtos</h1>
-            <p className="text-muted">Controle seu estoque e produtos</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#1A73E8' }}>Gerenciar Produtos</h1>
+            <p className="text-muted">Controle seu estoque e produtos para venda</p>
           </div>
           <button className="btn btn-primary" onClick={() => openModal()}>
             <PlusCircle size={18} />
@@ -248,7 +248,7 @@ const Products = () => {
                       <tr key={product.id}>
                         <td className="font-bold">{product.name}</td>
                         <td className="text-muted">{product.description || '-'}</td>
-                        <td className="font-bold text-primary">
+                        <td className="font-bold" style={{ color: '#1A73E8' }}>
                           R$ {product.price.toFixed(2)}
                         </td>
                         <td>
@@ -314,7 +314,7 @@ const Products = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="card" style={{ margin: 0 }}>
               <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-xl font-bold" style={{ color: '#1A73E8' }}>
                   {editingProduct ? 'Editar Produto' : 'Novo Produto'}
                 </h2>
                 <button onClick={closeModal} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
@@ -430,7 +430,7 @@ const Products = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="card" style={{ margin: 0 }}>
               <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-xl font-bold" style={{ color: '#1A73E8' }}>
                   {stockAction === 'add' ? 'Adicionar Estoque' : 'Remover Estoque'}
                 </h2>
                 <button onClick={closeStockModal} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
