@@ -174,7 +174,7 @@ const Tabs = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                background: 'linear-gradient(135deg, #1A73E8, #0050B3)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -195,7 +195,7 @@ const Tabs = () => {
               <div style={{ 
                 width: '60px', 
                 height: '60px', 
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                background: 'linear-gradient(135deg, #1A73E8, #0050B3)',
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',

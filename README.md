@@ -1,11 +1,11 @@
-# 🏐 QuadraCerta - Sistema de Gerenciamento de Complexos Esportivos
+# 🏐 AgendaCerta - Sistema de Gerenciamento de Complexos Esportivos
 
 ![Status](https://img.shields.io/badge/status-em%20produção-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-%3E%3D16.13-brightgreen)
 ![React](https://img.shields.io/badge/react-18-blue)
 
-Sistema completo e profissional para gestão de complexos esportivos, oferecendo controle total sobre agendamentos, clientes, estoque, comandas e muito mais.
+Sistema completo e profissional para gestão de agendamentos e serviços, oferecendo controle total sobre agendamentos, clientes, estoque, comandas e muito mais.
 
 ---
 
@@ -29,7 +29,7 @@ Sistema completo e profissional para gestão de complexos esportivos, oferecendo
 
 ## 🎯 Sobre o Projeto
 
-O **QuadraCerta** foi desenvolvido para resolver os principais desafios na administração de complexos esportivos:
+O **AgendaCerta** foi desenvolvido para resolver os principais desafios na administração de agendamentos e serviços:
 
 - ✅ Eliminar conflitos de agendamento
 - ✅ Profissionalizar a gestão financeira
@@ -69,7 +69,7 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
   - Visualização por dia, semana ou mês
   - Interface drag-and-drop
   - Cores e status claros
-  - Filtros avançados (quadra, data, cliente, status)
+  - Filtros avançados (recurso, data, cliente, status)
 
 - **Tipos de Reserva**
   - **Avulsas**: Agendamentos únicos
@@ -83,12 +83,12 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
   - Notificações automáticas
   - Gestão de horários de pico
 
-### 🏟️ Gerenciamento de Quadras
+### 🏟️ Gerenciamento de Recursos
 
 - Cadastro detalhado (nome, esporte, capacidade, preço/hora)
 - Controle de status (Disponível, Ocupada, Manutenção)
 - Upload de fotos e descrições
-- Análise de rentabilidade por quadra
+- Análise de rentabilidade por recurso
 - Configuração de horários de funcionamento
 
 ### 👤 Gerenciamento de Clientes
@@ -120,7 +120,7 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
 
 - Visão geral do complexo
 - Receita por período
-- Taxa de ocupação das quadras
+- Taxa de ocupação das recursos
 - Produtos mais vendidos
 - Clientes mais frequentes
 - Próximos agendamentos
@@ -183,8 +183,8 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
 #### 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/quadracerta.git
-cd quadracerta
+git clone https://github.com/seu-usuario/agendacerta.git
+cd agendacerta
 ```
 
 #### 2. Instale as dependências
@@ -212,7 +212,7 @@ Crie um arquivo `.env` no diretório `backend/`:
 ```env
 # Banco de Dados
 DATABASE_URL="file:./dev.db"  # SQLite para desenvolvimento
-# DATABASE_URL="postgresql://user:password@localhost:5432/quadracerta"  # PostgreSQL para produção
+# DATABASE_URL="postgresql://user:password@localhost:5432/agendacerta"  # PostgreSQL para produção
 
 # Autenticação
 JWT_SECRET="sua_chave_secreta_super_segura_aqui"
@@ -270,7 +270,7 @@ npm run dev
 ## 📁 Estrutura do Projeto
 
 ```
-quadracerta/
+agendacerta/
 │
 ├── backend/
 │   ├── prisma/
@@ -281,8 +281,8 @@ quadracerta/
 │   │   ├── auth.js                 # Autenticação (login, register)
 │   │   ├── admin.js                # Painel Super Admin
 │   │   ├── users.js                # Gerenciamento de usuários
-│   │   ├── courts.js               # Gerenciamento de quadras
-│   │   ├── courtTypes.js           # Tipos de quadras/esportes
+│   │   ├── courts.js               # Gerenciamento de recursos
+│   │   ├── courtTypes.js           # Tipos de recursos/esportes
 │   │   ├── clients.js              # Gerenciamento de clientes
 │   │   ├── reservations.js         # Sistema de reservas
 │   │   ├── products.js             # Controle de estoque
@@ -320,7 +320,7 @@ quadracerta/
 │   │   │   ├── Register.js         # Tela de registro
 │   │   │   ├── Dashboard.js        # Dashboard principal
 │   │   │   ├── Users.js            # Gerenciamento de funcionários
-│   │   │   ├── Courts.js           # Gerenciamento de quadras
+│   │   │   ├── Courts.js           # Gerenciamento de recursos
 │   │   │   ├── Clients.js          # Gerenciamento de clientes
 │   │   │   ├── Reservations.js     # Sistema de reservas
 │   │   │   ├── Products.js         # Controle de estoque
@@ -432,15 +432,15 @@ npm test               # Executa testes
 | DELETE | `/api/users/:id` | Deletar funcionário | users:delete |
 | PUT | `/api/users/:id/permissions` | Atualizar permissões | users:edit |
 
-### Quadras
+### Recursos
 
 | Método | Endpoint | Descrição | Permissão |
 |--------|----------|-----------|-----------|
-| GET | `/api/courts` | Listar quadras | courts:view |
-| POST | `/api/courts` | Criar quadra | courts:create |
-| GET | `/api/courts/:id` | Buscar quadra | courts:view |
-| PUT | `/api/courts/:id` | Atualizar quadra | courts:edit |
-| DELETE | `/api/courts/:id` | Deletar quadra | courts:delete |
+| GET | `/api/courts` | Listar recursos | courts:view |
+| POST | `/api/courts` | Criar recurso | courts:create |
+| GET | `/api/courts/:id` | Buscar recurso | courts:view |
+| PUT | `/api/courts/:id` | Atualizar recurso | courts:edit |
+| DELETE | `/api/courts/:id` | Deletar recurso | courts:delete |
 
 ### Clientes
 
@@ -463,7 +463,7 @@ npm test               # Executa testes
 | DELETE | `/api/reservations/:id` | Cancelar reserva | reservations:cancel |
 
 **Parâmetros de Query para Listagem:**
-- `courtId` - Filtrar por quadra
+- `courtId` - Filtrar por recurso
 - `clientId` - Filtrar por cliente
 - `startDate` - Filtrar por data inicial
 - `endDate` - Filtrar por data final
@@ -571,7 +571,7 @@ model Complex {
 }
 ```
 
-### Court (Quadra)
+### Court (Recurso)
 ```prisma
 model Court {
   id           String    @id @default(cuid())
@@ -833,7 +833,7 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 
 ## 👥 Autores
 
-- **QuadraCerta Team** - Desenvolvimento e manutenção
+- **AgendaCerta Team** - Desenvolvimento e manutenção
 
 ---
 
@@ -841,9 +841,9 @@ Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) par
 
 Para dúvidas, sugestões ou reportar bugs:
 
-- 📧 Email: suporte@quadracerta.com
-- 💬 Issues: [GitHub Issues](https://github.com/seu-usuario/quadracerta/issues)
-- 📚 Documentação: [Wiki do Projeto](https://github.com/seu-usuario/quadracerta/wiki)
+- 📧 Email: suporte@agendacerta.com
+- 💬 Issues: [GitHub Issues](https://github.com/seu-usuario/agendacerta/issues)
+- 📚 Documentação: [Wiki do Projeto](https://github.com/seu-usuario/agendacerta/wiki)
 
 ---
 
@@ -858,7 +858,7 @@ Para dúvidas, sugestões ou reportar bugs:
 
 <div align="center">
 
-**Feito com ❤️ para revolucionar a gestão de complexos esportivos**
+**Feito com ❤️ para revolucionar a gestão de agendamentos e serviços**
 
 ⭐ Se este projeto foi útil, considere dar uma estrela!
 

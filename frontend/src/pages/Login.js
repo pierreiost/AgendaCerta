@@ -591,7 +591,7 @@ const Login = () => {
                   </a>
 
                   <a 
-                    href="mailto:quadracerta@gmail.com"
+                    href="mailto:agendacerta@gmail.com"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -631,7 +631,7 @@ const Login = () => {
                         E-mail
                       </div>
                       <div style={{ fontSize: '1.05rem', fontWeight: '600' }}>
-                        quadracerta@gmail.com
+                        agendacerta@gmail.com
                       </div>
                     </div>
                   </a>

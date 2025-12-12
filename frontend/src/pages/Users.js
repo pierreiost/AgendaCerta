@@ -362,8 +362,8 @@ const Users = () => {
 
   const getAvatarColor = (name) => {
     const colors = [
-      '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b',
-      '#10b981', '#06b6d4', '#6366f1', '#14b8a6'
+      '#1A73E8', '#8b5cf6', '#ec4899', '#f59e0b',
+      '#1A73E8', '#06b6d4', '#6366f1', '#14b8a6'
     ];
     const index = name.charCodeAt(0) % colors.length;
     return colors[index];
@@ -419,7 +419,7 @@ const Users = () => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <UsersIcon size={24} color="#3b82f6" />
+              <UsersIcon size={24} color="#1A73E8" />
             </div>
             <div>
               <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>Total de Usuários</p>
@@ -585,7 +585,7 @@ const Users = () => {
                         fontSize: '0.75rem',
                         fontWeight: '600',
                         background: user.role === 'ADMIN' ? '#fef2f2' : '#eff6ff',
-                        color: user.role === 'ADMIN' ? '#dc2626' : '#2563eb'
+                        color: user.role === 'ADMIN' ? '#dc2626' : '#0050B3'
                       }}>
                         {user.role === 'ADMIN' ? 'Administrador' : 'Funcionário'}
                       </span>
@@ -886,7 +886,7 @@ const Users = () => {
                           borderRadius: '8px',
                           border: '1px solid #bfdbfe'
                         }}>
-                          <Shield size={18} color="#2563eb" />
+                          <Shield size={18} color="#0050B3" />
                           <span style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '500' }}>
                             Selecione as permissões deste funcionário
                           </span>

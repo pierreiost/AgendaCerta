@@ -96,7 +96,7 @@ const SuperAdminPanel = () => {
   const getStatusBadge = (status) => {
     const badges = {
       PENDING: { color: '#f59e0b', bg: '#fef3c7', text: 'Pendente', icon: Clock },
-      ACTIVE: { color: '#10b981', bg: '#d1fae5', text: 'Ativo', icon: CheckCircle },
+      ACTIVE: { color: '#1A73E8', bg: '#d1fae5', text: 'Ativo', icon: CheckCircle },
       REJECTED: { color: '#ef4444', bg: '#fee2e2', text: 'Rejeitado', icon: XCircle },
       SUSPENDED: { color: '#dc2626', bg: '#fecaca', text: 'Suspenso', icon: Ban }
     };
@@ -176,8 +176,8 @@ const SuperAdminPanel = () => {
             cursor: 'pointer'
           }}
           onClick={() => setFilter('ACTIVE')}>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#10b981' }}>Ativos</p>
-            <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: '#10b981' }}>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#1A73E8' }}>Ativos</p>
+            <p style={{ margin: 0, fontSize: '2rem', fontWeight: '700', color: '#1A73E8' }}>
               {stats.active || 0}
             </p>
           </div>
@@ -301,7 +301,7 @@ const SuperAdminPanel = () => {
                         style={{
                           flex: 1,
                           padding: '0.75rem',
-                          background: '#10b981',
+                          background: '#1A73E8',
                           color: 'white',
                           border: 'none',
                           borderRadius: '8px',
@@ -368,7 +368,7 @@ const SuperAdminPanel = () => {
                       style={{
                         flex: 1,
                         padding: '0.75rem',
-                        background: '#10b981',
+                        background: '#1A73E8',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',

@@ -68,7 +68,7 @@ const Header = () => {
             }}>
               <img
                 src="/logo.png"
-                alt="QuadraCerta Logo"
+                alt="AgendaCerta Logo"
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
