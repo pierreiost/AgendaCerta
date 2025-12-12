@@ -8,11 +8,32 @@ const prisma = new PrismaClient();
 
 router.get('/', authMiddleware, checkPermission('products', 'view'), async (req, res) => {
   try {
-    const products = await prisma.product.findMany({
-      where: { complexId: req.user.complexId },
-      orderBy: { name: 'asc' }
+    // Paginação
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const where = { complexId: req.user.complexId };
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' }
+      }),
+      prisma.product.count({ where })
+    ]);
+
+    res.json({
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
-    res.json(products);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao listar produtos.' });

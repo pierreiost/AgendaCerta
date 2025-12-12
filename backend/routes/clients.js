@@ -8,11 +8,32 @@ const prisma = new PrismaClient();
 
 router.get('/', authMiddleware, checkPermission('clients', 'view'), async (req, res) => {
   try {
-    const clients = await prisma.client.findMany({
-      where: { complexId: req.user.complexId },
-      orderBy: { fullName: 'asc' }
+    // Paginação
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const where = { complexId: req.user.complexId };
+
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { fullName: 'asc' }
+      }),
+      prisma.client.count({ where })
+    ]);
+
+    res.json({
+      data: clients,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
-    res.json(clients);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao listar clientes.' });

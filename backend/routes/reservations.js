@@ -36,18 +36,38 @@ const prisma = new PrismaClient();
  */
 router.get('/', authMiddleware, checkPermission('reservations', 'view'), async (req, res) => {
   try {
-    const reservations = await prisma.reservation.findMany({
-      where: {
-        resource: { complexId: req.user.complexId }
-      },
-      include: {
-        resource: true,
-        client: true
-      },
-      orderBy: { startTime: 'desc' }
-    });
+    // Paginação
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
 
-    res.json(reservations);
+    const where = {
+      resource: { complexId: req.user.complexId }
+    };
+
+    const [reservations, total] = await Promise.all([
+      prisma.reservation.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          resource: true,
+          client: true
+        },
+        orderBy: { startTime: 'desc' }
+      }),
+      prisma.reservation.count({ where })
+    ]);
+
+    res.json({
+      data: reservations,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Erro ao buscar reservas:', error);
     res.status(500).json({ error: 'Erro ao buscar reservas' });

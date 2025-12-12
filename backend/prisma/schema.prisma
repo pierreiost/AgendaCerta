@@ -24,6 +24,9 @@ model User {
   status        UserStatus  @default(PENDING) 
   permissions   UserPermission[]
   
+  @@index([email])
+  @@index([complexId])
+  @@index([role])
   @@map("users")
 }
 
@@ -101,6 +104,9 @@ model Resource {
   
   reservations  Reservation[]
   
+  @@index([complexId, status])
+  @@index([resourceTypeId])
+  @@index([status])
   @@map("resources")
 }
 
@@ -118,6 +124,9 @@ model Client {
   reservations Reservation[]
   tabs         Tab[]
   
+  @@index([complexId])
+  @@index([phone])
+  @@index([email])
   @@map("clients")
 }
 
@@ -139,6 +148,11 @@ model Reservation {
   
   tabs            Tab[]
   
+  @@index([startTime, endTime])
+  @@index([resourceId, startTime])
+  @@index([clientId])
+  @@index([status])
+  @@index([recurringGroupId])
   @@map("reservations")
 }
 
@@ -172,6 +186,8 @@ model Product {
   tabItems    TabItem[]
   stockMovements StockMovement[]
   
+  @@index([complexId])
+  @@index([stock])
   @@map("products")
 }
 
@@ -184,6 +200,8 @@ model StockMovement {
   reason      String?
   createdAt   DateTime @default(now())
   
+  @@index([productId])
+  @@index([createdAt])
   @@map("stock_movements")
 }
 
@@ -201,6 +219,10 @@ model Tab {
   
   items         TabItem[]
   
+  @@index([clientId])
+  @@index([reservationId])
+  @@index([status])
+  @@index([createdAt])
   @@map("tabs")
 }
 
@@ -216,6 +238,8 @@ model TabItem {
   total       Float
   createdAt   DateTime @default(now())
   
+  @@index([tabId])
+  @@index([productId])
   @@map("tab_items")
 }
 

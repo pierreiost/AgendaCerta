@@ -11,6 +11,11 @@ router.get('/', authMiddleware, checkPermission('tabs', 'view'), async (req, res
   try {
     const { status, clientId } = req.query;
     
+    // Paginação
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
     const where = {
       client: { complexId: req.user.complexId }
     };
@@ -23,17 +28,30 @@ router.get('/', authMiddleware, checkPermission('tabs', 'view'), async (req, res
       where.clientId = clientId;
     }
 
-    const tabs = await prisma.tab.findMany({
-      where,
-      include: {
-        client: true,
-        reservation: { include: { court: true } },
-        items: { include: { product: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const [tabs, total] = await Promise.all([
+      prisma.tab.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          client: true,
+          reservation: { include: { court: true } },
+          items: { include: { product: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.tab.count({ where })
+    ]);
 
-    res.json(tabs);
+    res.json({
+      data: tabs,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao buscar comandas.' });
