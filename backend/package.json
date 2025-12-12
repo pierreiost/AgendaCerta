@@ -1,5 +1,5 @@
 {
-  "name": "quadracerta-backend",
+  "name": "agendacerta-backend",
   "version": "1.0.0",
   "main": "server.js",
   "prisma": {
@@ -8,6 +8,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:watch": "jest --watch --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.js"
@@ -26,10 +29,16 @@
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.2.0",
     "nodemon": "^3.0.2",
-    "prisma": "^5.7.0"
+    "prisma": "^5.7.0",
+    "supertest": "^7.1.4"
   }
 }
