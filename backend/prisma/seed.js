@@ -14,7 +14,7 @@ async function main() {
   await prisma.reservation.deleteMany();
   await prisma.recurringGroup.deleteMany();
   await prisma.client.deleteMany();
-  await prisma.court.deleteMany();
+  await prisma.resource.deleteMany();
   await prisma.user.deleteMany();
   await prisma.complex.deleteMany();
 
@@ -36,7 +36,7 @@ async function main() {
     data: {
       firstName: 'João',
       lastName: 'Silva',
-      email: 'admin@quadracerta.com',
+      email: 'admin@agendacerta.com',
       password: hashedPassword,
       cpf: '123.456.789-00',
       cnpj: '12.345.678/0001-90',
@@ -48,12 +48,12 @@ async function main() {
 
   console.log('✅ Usuário admin criado:', adminUser.email);
 
-  // Criar quadras
-  const courts = await Promise.all([
-    prisma.court.create({
+  // Criar recursos
+  const resources = await Promise.all([
+    prisma.resource.create({
       data: {
-        name: 'Quadra 1 - Society',
-        sportType: 'Futebol Society',
+        name: 'Recurso 1 - Sala de Reunião',
+        sportType: 'Sala de Reunião',
         capacity: 14,
         pricePerHour: 120.00,
         description: 'Quadra de grama sintética, com iluminação',
@@ -61,10 +61,10 @@ async function main() {
         complexId: complex.id
       }
     }),
-    prisma.court.create({
+    prisma.resource.create({
       data: {
-        name: 'Quadra 2 - Futsal',
-        sportType: 'Futsal',
+        name: 'Recurso 2 - Consultório Médico',
+        sportType: 'Consultório Médico',
         capacity: 10,
         pricePerHour: 100.00,
         description: 'Quadra coberta, piso de madeira',
@@ -72,10 +72,10 @@ async function main() {
         complexId: complex.id
       }
     }),
-    prisma.court.create({
+    prisma.resource.create({
       data: {
-        name: 'Quadra 3 - Tênis',
-        sportType: 'Tênis',
+        name: 'Recurso 3 - Estúdio de Fotografia',
+        sportType: 'Estúdio de Fotografia',
         capacity: 4,
         pricePerHour: 80.00,
         description: 'Quadra de saibro, coberta',
@@ -83,10 +83,10 @@ async function main() {
         complexId: complex.id
       }
     }),
-    prisma.court.create({
+    prisma.resource.create({
       data: {
-        name: 'Quadra 4 - Vôlei',
-        sportType: 'Vôlei',
+        name: 'Recurso 4 - Sala de Aula',
+        sportType: 'Sala de Aula',
         capacity: 12,
         pricePerHour: 90.00,
         description: 'Quadra de areia, ao ar livre',
@@ -96,7 +96,7 @@ async function main() {
     })
   ]);
 
-  console.log('✅ Quadras criadas:', courts.length);
+  console.log('✅ Recursos criados:', resources.length);
 
   // Criar clientes
   const clients = await Promise.all([
@@ -148,7 +148,7 @@ async function main() {
   const reservations = await Promise.all([
     prisma.reservation.create({
       data: {
-        courtId: courts[0].id,
+        resourceId: resources[0].id,
         clientId: clients[0].id,
         startTime: tomorrow,
         endTime: new Date(tomorrow.getTime() + 60 * 60 * 1000),
@@ -157,7 +157,7 @@ async function main() {
     }),
     prisma.reservation.create({
       data: {
-        courtId: courts[1].id,
+        resourceId: resources[1].id,
         clientId: clients[1].id,
         startTime: new Date(tomorrow.getTime() + 2 * 60 * 60 * 1000),
         endTime: new Date(tomorrow.getTime() + 3 * 60 * 60 * 1000),
@@ -226,10 +226,10 @@ async function main() {
 
   const superAdmin = await prisma.user.create({
     data: {
-      firstName: 'Quadra',
+      firstName: 'Agenda',
       lastName: 'Certa',
-      email: 'quadracerta@gmail.com',
-      password: await bcrypt.hash('Quadracerta1811@', 10),
+      email: 'agendacerta@gmail.com',
+      password: await bcrypt.hash('AgendaCerta1811@', 10),
       phone: '(53) 98125-9200',
       role: 'SUPER_ADMIN',
       status: 'ACTIVE',
@@ -257,7 +257,7 @@ async function main() {
 
   console.log('\n🎉 Seed concluído com sucesso!');
   console.log('\n📝 Credenciais de acesso:');
-  console.log('   Email: admin@quadracerta.com');
+  console.log('   Email: admin@agendacerta.com');}],path:
   console.log('   Senha: admin123');
   console.log('\n🌐 Acesse: http://localhost:3000\n');
 }

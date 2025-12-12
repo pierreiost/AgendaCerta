@@ -20,9 +20,134 @@ const notificationRoutes = require('./routes/notifications');
 const permissionRoutes = require('./routes/permissions');
 const adminRoutes = require('./routes/admin');
 const resourceTypesRoutes = require('./routes/resourceTypes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 const googleCalendarRoutes = require('./routes/googleCalendar');
 
 const app = express();
+
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'AgendaCerta API',
+      version: '1.0.0',
+      description: 'Documentação da API do AgendaCerta, um sistema de agendamento e gestão de recursos.',
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'Servidor Principal',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      schemas: {
+        Resource: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            resourceTypeId: { type: 'string', format: 'uuid' },
+            pricePerHour: { type: 'number', format: 'float' },
+            description: { type: 'string', nullable: true },
+            status: { type: 'string', enum: ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE'] },
+            complexId: { type: 'string', format: 'uuid' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            resourceType: { $ref: '#/components/schemas/ResourceType' },
+          },
+        },
+        ResourceType: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            name: { type: 'string' },
+            isDefault: { type: 'boolean' },
+            complexId: { type: 'string', format: 'uuid', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        Reservation: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            resourceId: { type: 'string', format: 'uuid' },
+            clientId: { type: 'string', format: 'uuid' },
+            startTime: { type: 'string', format: 'date-time' },
+            endTime: { type: 'string', format: 'date-time' },
+            status: { type: 'string', enum: ['CONFIRMED', 'PENDING', 'CANCELLED'] },
+            isRecurring: { type: 'boolean' },
+            recurringGroupId: { type: 'string', format: 'uuid', nullable: true },
+            googleCalendarEventId: { type: 'string', nullable: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+            resource: { $ref: '#/components/schemas/Resource' },
+            client: { $ref: '#/components/schemas/Client' },
+          },
+        },
+        Client: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            fullName: { type: 'string' },
+            phone: { type: 'string' },
+            email: { type: 'string', nullable: true },
+            cpf: { type: 'string', nullable: true },
+            complexId: { type: 'string', format: 'uuid' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/*.js'], // Caminho para os arquivos de rota
+};
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'AgendaCerta API',
+      version: '1.0.0',
+      description: 'Documentação da API do AgendaCerta, um sistema de agendamento e gestão de recursos.',
+    },
+    servers: [
+      {
+        url: '/api',
+        description: 'Servidor Principal',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/*.js'], // Caminho para os arquivos de rota
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 const prisma = new PrismaClient();
 
 app.use(helmet({
@@ -117,6 +242,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/resource-types', resourceTypesRoutes);
 app.use('/api/google-calendar', googleCalendarRoutes);
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -171,6 +298,7 @@ const server = app.listen(PORT, () => {
   console.log(`   ✓ CORS restritivo`);
   console.log(`   ✓ Rate limiting`);
   console.log(`   ✓ XSS Protection`);
+  console.log(`   ✓ Documentação da API (Swagger)`);
   console.log(`   ✓ NoSQL Injection Protection`);
   console.log(`   ✓ HPP Protection\n`);
 });

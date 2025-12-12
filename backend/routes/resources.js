@@ -5,6 +5,13 @@ const { checkPermission } = require('../middleware/permissions');
 const { body, param, validationResult } = require('express-validator');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Resources
+ *   description: Gestão de Recursos (antigas Quadras)
+ */
 const prisma = new PrismaClient();
 
 const validate = (req, res, next) => {
@@ -21,6 +28,26 @@ const validate = (req, res, next) => {
   next();
 };
 
+/**
+ * @swagger
+ * /resources:
+ *   get:
+ *     summary: Lista todos os recursos do complexo
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de recursos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Resource'
+ *       401:
+ *         description: Não autorizado
+ */
 // Listar recursos
 router.get('/', authMiddleware, checkPermission('resources', 'view'), async (req, res) => {
   try {
@@ -39,6 +66,32 @@ router.get('/', authMiddleware, checkPermission('resources', 'view'), async (req
   }
 });
 
+/**
+ * @swagger
+ * /resources/{id}:
+ *   get:
+ *     summary: Busca um recurso pelo ID
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do recurso
+ *     responses:
+ *       200:
+ *         description: Detalhes do recurso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Resource'
+ *       404:
+ *         description: Recurso não encontrado
+ */
 // Buscar recurso por ID
 router.get('/:id',
   authMiddleware,
@@ -71,6 +124,53 @@ router.get('/:id',
   }
 );
 
+/**
+ * @swagger
+ * /resources:
+ *   post:
+ *     summary: Cria um novo recurso
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - resourceTypeId
+ *               - pricePerHour
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome do recurso
+ *               resourceTypeId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID do tipo de recurso
+ *               pricePerHour:
+ *                 type: number
+ *                 format: float
+ *                 description: Preço por hora
+ *               description:
+ *                 type: string
+ *                 description: Descrição do recurso
+ *               status:
+ *                 type: string
+ *                 enum: [AVAILABLE, OCCUPIED, MAINTENANCE]
+ *                 description: Status inicial do recurso
+ *     responses:
+ *       201:
+ *         description: Recurso criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Resource'
+ *       400:
+ *         description: Dados inválidos
+ */
 // Criar recurso
 router.post('/',
   authMiddleware,
@@ -133,6 +233,59 @@ router.post('/',
   }
 );
 
+/**
+ * @swagger
+ * /resources/{id}:
+ *   put:
+ *     summary: Atualiza um recurso existente
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do recurso a ser atualizado
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome do recurso
+ *               resourceTypeId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID do tipo de recurso
+ *               pricePerHour:
+ *                 type: number
+ *                 format: float
+ *                 description: Preço por hora
+ *               description:
+ *                 type: string
+ *                 description: Descrição do recurso
+ *               status:
+ *                 type: string
+ *                 enum: [AVAILABLE, OCCUPIED, MAINTENANCE]
+ *                 description: Status do recurso
+ *     responses:
+ *       200:
+ *         description: Recurso atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Resource'
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Recurso não encontrado
+ */
 // Atualizar recurso
 router.put('/:id',
   authMiddleware,
@@ -211,6 +364,30 @@ router.put('/:id',
   }
 );
 
+/**
+ * @swagger
+ * /resources/{id}:
+ *   delete:
+ *     summary: Deleta um recurso
+ *     tags: [Resources]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do recurso a ser deletado
+ *     responses:
+ *       200:
+ *         description: Recurso deletado com sucesso
+ *       404:
+ *         description: Recurso não encontrado
+ *       409:
+ *         description: Conflito (reservas ativas)
+ */
 // Deletar recurso
 router.delete('/:id',
   authMiddleware,

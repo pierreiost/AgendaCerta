@@ -5,8 +5,35 @@ const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = requir
 const { checkPermission } = require('../middleware/permissions');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: Reservations
+ *   description: Gestão de Agendamentos (Reservas)
+ */
 const prisma = new PrismaClient();
 
+/**
+ * @swagger
+ * /reservations:
+ *   get:
+ *     summary: Lista todos os agendamentos do complexo
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de agendamentos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Reservation'
+ *       401:
+ *         description: Não autorizado
+ */
 router.get('/', authMiddleware, checkPermission('reservations', 'view'), async (req, res) => {
   try {
     const reservations = await prisma.reservation.findMany({
@@ -27,6 +54,32 @@ router.get('/', authMiddleware, checkPermission('reservations', 'view'), async (
   }
 });
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   get:
+ *     summary: Busca um agendamento pelo ID
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do agendamento
+ *     responses:
+ *       200:
+ *         description: Detalhes do agendamento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reservation'
+ *       404:
+ *         description: Agendamento não encontrado
+ */
 router.get('/:id', authMiddleware, checkPermission('reservations', 'view'), async (req, res) => {
   try {
     const reservation = await prisma.reservation.findFirst({
@@ -51,6 +104,67 @@ router.get('/:id', authMiddleware, checkPermission('reservations', 'view'), asyn
   }
 });
 
+/**
+ * @swagger
+ * /reservations:
+ *   post:
+ *     summary: Cria um novo agendamento (reserva)
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - resourceId
+ *               - clientId
+ *               - startTime
+ *               - durationInHours
+ *             properties:
+ *               resourceId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID do recurso
+ *               clientId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID do cliente
+ *               startTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Horário de início
+ *               durationInHours:
+ *                 type: number
+ *                 format: float
+ *                 description: Duração em horas (ex: 1.5)
+ *               isRecurring:
+ *                 type: boolean
+ *                 description: Se é uma reserva recorrente
+ *               frequency:
+ *                 type: string
+ *                 enum: [WEEKLY, MONTHLY]
+ *                 description: Frequência da recorrência (se isRecurring for true)
+ *               endDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Data final da recorrência (se isRecurring for true)
+ *     responses:
+ *       201:
+ *         description: Agendamento criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reservation'
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Recurso ou Cliente não encontrado
+ *       409:
+ *         description: Conflito de horário
+ */
 router.post('/', authMiddleware, checkPermission('reservations', 'create'), async (req, res) => {
   try {
     const { resourceId, clientId, startTime, durationInHours, isRecurring, frequency, endDate } = req.body;
@@ -219,6 +333,53 @@ router.post('/', authMiddleware, checkPermission('reservations', 'create'), asyn
   }
 });
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   put:
+ *     summary: Atualiza um agendamento existente
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do agendamento a ser atualizado
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               startTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Novo horário de início
+ *               durationInHours:
+ *                 type: number
+ *                 format: float
+ *                 description: Nova duração em horas
+ *               status:
+ *                 type: string
+ *                 enum: [CONFIRMED, PENDING, CANCELLED]
+ *                 description: Novo status
+ *     responses:
+ *       200:
+ *         description: Agendamento atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Reservation'
+ *       400:
+ *         description: Não é possível editar (ex: comanda aberta)
+ *       404:
+ *         description: Agendamento não encontrado
+ */
 router.put('/:id', authMiddleware, checkPermission('reservations', 'edit'), async (req, res) => {
   try {
     const { startTime, durationInHours, status } = req.body;
@@ -285,6 +446,30 @@ router.put('/:id', authMiddleware, checkPermission('reservations', 'edit'), asyn
   }
 });
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   delete:
+ *     summary: Cancela um agendamento
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do agendamento a ser cancelado
+ *     responses:
+ *       200:
+ *         description: Agendamento cancelado com sucesso
+ *       400:
+ *         description: Não é possível cancelar (ex: comanda aberta)
+ *       404:
+ *         description: Agendamento não encontrado
+ */
 router.delete('/:id', authMiddleware, checkPermission('reservations', 'cancel'), async (req, res) => {
   try {
     const reservation = await prisma.reservation.findFirst({
@@ -328,6 +513,35 @@ router.delete('/:id', authMiddleware, checkPermission('reservations', 'cancel'),
   }
 });
 
+/**
+ * @swagger
+ * /reservations/cancel-multiple:
+ *   post:
+ *     summary: Cancela múltiplos agendamentos (recorrentes)
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reservationIds
+ *             properties:
+ *               reservationIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: Lista de IDs de agendamentos a serem cancelados
+ *     responses:
+ *       200:
+ *         description: Agendamentos cancelados com sucesso
+ *       400:
+ *         description: Dados inválidos
+ */
 router.post('/cancel-multiple', authMiddleware, checkPermission('reservations', 'cancel'), async (req, res) => {
   try {
     const { reservationIds } = req.body;

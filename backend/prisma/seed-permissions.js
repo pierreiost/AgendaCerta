@@ -25,11 +25,11 @@ async function main() {
     { module: 'tabs', action: 'close', name: 'Fechar Comandas', description: 'Permite fechar e finalizar comandas' },
     { module: 'tabs', action: 'cancel', name: 'Cancelar Comandas', description: 'Permite cancelar comandas' },
 
-    // Quadras
-    { module: 'courts', action: 'view', name: 'Visualizar Quadras', description: 'Permite visualizar lista de quadras' },
-    { module: 'courts', action: 'create', name: 'Criar Quadras', description: 'Permite cadastrar novas quadras' },
-    { module: 'courts', action: 'edit', name: 'Editar Quadras', description: 'Permite editar informações de quadras' },
-    { module: 'courts', action: 'delete', name: 'Excluir Quadras', description: 'Permite excluir quadras do sistema' },
+    // Recursos
+    { module: 'resources', action: 'view', name: 'Visualizar Recursos', description: 'Permite visualizar lista de recursos' },
+    { module: 'resources', action: 'create', name: 'Criar Recursos', description: 'Permite cadastrar novos recursos' },
+    { module: 'resources', action: 'edit', name: 'Editar Recursos', description: 'Permite editar informações de recursos' },
+    { module: 'resources', action: 'delete', name: 'Excluir Recursos', description: 'Permite excluir recursos do sistema' },
 
     // Reservas
     { module: 'reservations', action: 'view', name: 'Visualizar Reservas', description: 'Permite visualizar agenda e reservas' },

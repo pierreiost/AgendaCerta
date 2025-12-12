@@ -5,6 +5,13 @@ const { checkPermission } = require('../middleware/permissions');
 const { body, param, validationResult } = require('express-validator');
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * tags:
+ *   name: ResourceTypes
+ *   description: Gestão de Tipos de Recurso
+ */
 const prisma = new PrismaClient();
 
 const validate = (req, res, next) => {
@@ -21,6 +28,26 @@ const validate = (req, res, next) => {
   next();
 };
 
+/**
+ * @swagger
+ * /resource-types:
+ *   get:
+ *     summary: Lista todos os tipos de recurso (padrão e personalizados)
+ *     tags: [ResourceTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de tipos de recurso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ResourceType'
+ *       401:
+ *         description: Não autorizado
+ */
 // Listar tipos de recurso (padrão + do complexo)
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -44,6 +71,38 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /resource-types:
+ *   post:
+ *     summary: Cria um novo tipo de recurso personalizado
+ *     tags: [ResourceTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Nome do novo tipo de recurso
+ *     responses:
+ *       201:
+ *         description: Tipo de recurso criado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ResourceType'
+ *       400:
+ *         description: Dados inválidos
+ *       409:
+ *         description: Já existe um tipo de recurso com este nome
+ */
 // Criar novo tipo de recurso
 router.post('/', 
   authMiddleware, 
@@ -91,6 +150,48 @@ router.post('/',
   }
 );
 
+/**
+ * @swagger
+ * /resource-types/{id}:
+ *   put:
+ *     summary: Atualiza um tipo de recurso personalizado
+ *     tags: [ResourceTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do tipo de recurso a ser atualizado
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Novo nome do tipo de recurso
+ *     responses:
+ *       200:
+ *         description: Tipo de recurso atualizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ResourceType'
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Tipo de recurso não encontrado ou não pode ser editado
+ *       409:
+ *         description: Já existe um tipo de recurso com este nome
+ */
 // Atualizar tipo de recurso (apenas tipos personalizados)
 router.put('/:id',
   authMiddleware,
@@ -152,6 +253,30 @@ router.put('/:id',
   }
 );
 
+/**
+ * @swagger
+ * /resource-types/{id}:
+ *   delete:
+ *     summary: Deleta um tipo de recurso personalizado
+ *     tags: [ResourceTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         required: true
+ *         description: ID do tipo de recurso a ser deletado
+ *     responses:
+ *       200:
+ *         description: Tipo de recurso excluído com sucesso
+ *       404:
+ *         description: Tipo de recurso não encontrado ou não pode ser excluído
+ *       409:
+ *         description: Conflito (recursos vinculados)
+ */
 // Deletar tipo de recurso (apenas tipos personalizados sem recursos vinculadas)
 router.delete('/:id',
   authMiddleware,
