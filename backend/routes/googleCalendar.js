@@ -3,6 +3,7 @@ const { google } = require('googleapis');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
+const { checkIntegrationHealth } = require('../services/googleCalendarService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -117,8 +118,32 @@ router.get('/status', authMiddleware, checkPermission('settings', 'view'), async
     }
 });
 
+// 3.5. Rota para verificar a saúde da integração (health check)
+router.get('/health', authMiddleware, checkPermission('settings', 'view'), async (req, res) => {
+    try {
+        const health = await checkIntegrationHealth(req.user.complexId);
+        res.json(health);
+    } catch (error) {
+        console.error('Erro ao verificar saúde da integração:', error);
+        res.status(500).json({ 
+            status: 'error', 
+            message: 'Erro ao verificar saúde da integração',
+            error: error.message 
+        });
+    }
+});
+
 // 4. Rota para receber notificações de alteração do Google Calendar (Webhooks)
 router.post('/webhook', async (req, res) => {
+  // Validação de segurança: Verificar se a requisição vem do Google
+  const channelToken = req.header('X-Goog-Channel-Token');
+  const expectedToken = process.env.GOOGLE_WEBHOOK_TOKEN;
+  
+  if (expectedToken && channelToken !== expectedToken) {
+    console.warn('[Webhook] Token inválido. Requisição rejeitada.');
+    return res.status(401).send('Unauthorized');
+  }
+  
   const channelId = req.header('X-Goog-Channel-ID');
   const resourceId = req.header('X-Goog-Resource-ID');
   const resourceState = req.header('X-Goog-Resource-State');
