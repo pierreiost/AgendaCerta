@@ -1,11 +1,12 @@
-# 🏐 AgendaCerta - Sistema de Gerenciamento de Complexos Esportivos
+# AgendaCerta
 
 ![Status](https://img.shields.io/badge/status-em%20produção-success)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Node](https://img.shields.io/badge/node-%3E%3D16.13-brightgreen)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0-brightgreen)
 ![React](https://img.shields.io/badge/react-18-blue)
+![PostgreSQL](https://img.shields.io/badge/postgresql-14+-blue)
 
-Sistema completo e profissional para gestão de agendamentos e serviços, oferecendo controle total sobre agendamentos, clientes, estoque, comandas e muito mais.
+Sistema completo e profissional para **gestão de agendamentos e serviços**, oferecendo controle total sobre reservas, clientes, recursos, estoque, comandas e integração bidirecional com **Google Calendar**.
 
 ---
 
@@ -19,8 +20,9 @@ Sistema completo e profissional para gestão de agendamentos e serviços, oferec
 - [Variáveis de Ambiente](#-variáveis-de-ambiente)
 - [Scripts Disponíveis](#-scripts-disponíveis)
 - [API Endpoints](#-api-endpoints)
-- [Modelo de Dados](#-modelo-de-dados)
-- [Deploy](#-deploy)
+- [Integração com Google Calendar](#-integração-com-google-calendar)
+- [Testes](#-testes)
+- [Deploy em Produção](#-deploy-em-produção)
 - [Segurança](#-segurança)
 - [Contribuindo](#-contribuindo)
 - [Licença](#-licença)
@@ -29,16 +31,17 @@ Sistema completo e profissional para gestão de agendamentos e serviços, oferec
 
 ## 🎯 Sobre o Projeto
 
-O **AgendaCerta** foi desenvolvido para resolver os principais desafios na administração de agendamentos e serviços:
+O **AgendaCerta** foi desenvolvido para resolver os principais desafios na administração de estabelecimentos que trabalham com agendamentos e serviços:
 
 - ✅ Eliminar conflitos de agendamento
 - ✅ Profissionalizar a gestão financeira
 - ✅ Controlar estoque de produtos
 - ✅ Gerenciar clientes e históricos
 - ✅ Automatizar processos manuais
+- ✅ Integrar com Google Calendar (sincronização bidirecional)
 - ✅ Gerar insights para tomadas de decisão
 
-O sistema foi construído pensando em **simplicidade**, **segurança** e **escalabilidade**, oferecendo uma interface moderna inspirada no Google e funcionalidades robustas para administradores, funcionários e proprietários de complexos.
+O sistema foi construído pensando em **simplicidade**, **segurança** e **escalabilidade**, oferecendo uma interface moderna e funcionalidades robustas para administradores, funcionários e proprietários de estabelecimentos.
 
 ---
 
@@ -47,13 +50,13 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
 ### 👥 Sistema de Usuários e Permissões
 
 - **Super Admin** (Desenvolvedores)
-  - Aprovação/rejeição de novos complexos
+  - Aprovação/rejeição de novos estabelecimentos
   - Suspensão e reativação de contas
   - Painel administrativo completo
   - Estatísticas globais do sistema
 
-- **Admin** (Donos de Complexos)
-  - Gerenciamento completo do próprio complexo
+- **Admin** (Donos de Estabelecimentos)
+  - Gerenciamento completo do próprio estabelecimento
   - Cadastro de funcionários (Semi Admin)
   - Controle de permissões granulares
   - Acesso a todos os recursos
@@ -61,7 +64,7 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
 - **Semi Admin** (Funcionários)
   - Acesso limitado conforme permissões
   - Operações do dia a dia (reservas, comandas)
-  - Visualização de dados do complexo
+  - Visualização de dados do estabelecimento
 
 ### 📅 Sistema de Agendamento
 
@@ -83,10 +86,28 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
   - Notificações automáticas
   - Gestão de horários de pico
 
-### 🏟️ Gerenciamento de Recursos
+### 🔄 Integração com Google Calendar
 
-- Cadastro detalhado (nome, esporte, capacidade, preço/hora)
-- Controle de status (Disponível, Ocupada, Manutenção)
+- **Sincronização Bidirecional**
+  - Criar agendamento no AgendaCerta → Cria evento no Google Calendar
+  - Atualizar agendamento no AgendaCerta → Atualiza evento no Google Calendar
+  - Cancelar agendamento no AgendaCerta → Exclui evento no Google Calendar
+  - Alterar evento no Google Calendar → Atualiza agendamento no AgendaCerta
+  - Excluir evento no Google Calendar → Cancela agendamento no AgendaCerta
+
+- **Recursos da Integração**
+  - Autenticação OAuth 2.0 segura
+  - Renovação automática de tokens
+  - Retry logic com backoff exponencial
+  - Tratamento robusto de erros
+  - Webhooks para sincronização em tempo real
+  - Health check da integração
+  - Logs detalhados
+
+### 🏢 Gerenciamento de Recursos
+
+- Cadastro detalhado (nome, tipo, capacidade, preço/hora)
+- Controle de status (Disponível, Ocupado, Manutenção)
 - Upload de fotos e descrições
 - Análise de rentabilidade por recurso
 - Configuração de horários de funcionamento
@@ -101,765 +122,523 @@ O sistema foi construído pensando em **simplicidade**, **segurança** e **escal
 
 ### 📦 Controle de Estoque
 
-- Cadastro de produtos (nome, preço, estoque, validade)
-- Movimentação de entrada e saída
-- Alertas automáticos de estoque baixo
-- Atualização automática ao fechar comandas
-- Relatórios de produtos mais vendidos
+- Cadastro de produtos com código de barras
+- Controle de entrada e saída
+- Alertas de estoque baixo
+- Histórico de movimentações
+- Relatórios de vendas
 
-### 🧾 Sistema de Comandas (Tabs)
+### 🧾 Sistema de Comandas
 
-- Abertura vinculada a cliente ou reserva
-- Adição/remoção de produtos em tempo real
+- Abertura de comandas vinculadas a reservas ou clientes
+- Adição de produtos e serviços
 - Cálculo automático de totais
-- Fechamento com atualização de estoque
-- Histórico completo de comandas
-- Controle de comandas abertas/fechadas/canceladas
+- Fechamento e pagamento
+- Histórico completo
 
 ### 📊 Dashboard e Relatórios
 
-- Visão geral do complexo
-- Receita por período
-- Taxa de ocupação das recursos
-- Produtos mais vendidos
-- Clientes mais frequentes
-- Próximos agendamentos
-- Métricas de performance
+- **Métricas em Tempo Real**
+  - Receita do dia/mês
+  - Agendamentos ativos
+  - Taxa de ocupação
+  - Produtos mais vendidos
 
-### 🔔 Sistema de Notificações
+- **Gráficos Interativos**
+  - Receita por período
+  - Ocupação por recurso
+  - Clientes mais frequentes
+  - Produtos em estoque
 
-- Notificações em tempo real
-- Alertas de reservas próximas
-- Avisos de estoque baixo
-- Notificações de novas aprovações (Super Admin)
+### 🔒 Segurança
+
+- Autenticação JWT
+- Criptografia de senhas (bcrypt)
+- Proteção contra SQL Injection
+- Proteção contra XSS
+- Rate limiting
+- Validação de entrada
+- Isolamento de dados por estabelecimento (multi-tenancy)
 
 ---
 
-## 🚀 Tecnologias
+## 🛠️ Tecnologias
 
-### Backend
+### **Backend**
+- **Node.js** 18.x (LTS)
+- **Express** 4.x - Framework web
+- **Prisma** 5.x - ORM
+- **PostgreSQL** 14+ - Banco de dados
+- **JWT** - Autenticação
+- **bcryptjs** - Criptografia de senhas
+- **express-validator** - Validação de entrada
+- **googleapis** - Integração com Google Calendar
+- **Swagger** - Documentação da API
+- **Jest** + **Supertest** - Testes automatizados
 
-- **Node.js** - Runtime JavaScript
-- **Express.js** - Framework web
-- **Prisma ORM** - ORM type-safe
-- **PostgreSQL** - Banco de dados (produção)
-- **SQLite** - Banco de dados (desenvolvimento)
-- **JWT** - Autenticação segura
-- **bcryptjs** - Hash de senhas
-- **helmet** - Segurança HTTP
-- **express-validator** - Validação de dados
-- **express-rate-limit** - Proteção contra ataques
-- **cors** - Controle de origem cruzada
-
-### Frontend
-
-- **React 18** - Biblioteca UI
-- **React Router v6** - Roteamento
-- **Context API** - Gerenciamento de estado
+### **Frontend**
+- **React** 18.x
+- **React Router** 6.x - Roteamento
 - **Axios** - Cliente HTTP
+- **Lucide React** - Ícones
+- **FullCalendar** - Calendário interativo
+- **Recharts** - Gráficos
 - **date-fns** - Manipulação de datas
-- **Lucide React** - Ícones modernos
-- **CSS Modules** - Estilização modular
 
-### DevOps e Deploy
-
-- **Vercel** - Hospedagem frontend
-- **Railway** - Hospedagem backend
+### **DevOps**
+- **PM2** - Gerenciador de processos
+- **Nginx** - Servidor web e proxy reverso
+- **Certbot** - Certificados SSL
 - **Git** - Controle de versão
-- **npm** - Gerenciador de pacotes
 
 ---
 
 ## 📦 Instalação
 
-### Pré-requisitos
+### **Pré-requisitos**
 
-- Node.js 16.13 ou superior
+- Node.js 18.x ou superior
+- PostgreSQL 14 ou superior
 - npm ou yarn
 - Git
 
-### Passo a Passo
-
-#### 1. Clone o repositório
+### **Passo 1: Clonar o Repositório**
 
 ```bash
-git clone https://github.com/seu-usuario/agendacerta.git
-cd agendacerta
+git clone https://github.com/pierreiost/AgendaCerta.git
+cd AgendaCerta
 ```
 
-#### 2. Instale as dependências
+### **Passo 2: Configurar o Backend**
 
-**Opção 1: Comando integrado**
 ```bash
-npm run install-all
-```
-
-**Opção 2: Manual**
-```bash
-# Backend
 cd backend
+
+# Instalar dependências
 npm install
 
-# Frontend
-cd ../frontend
-npm install
+# Copiar arquivo de exemplo de variáveis de ambiente
+cp .env.example .env
+
+# Editar o arquivo .env com suas configurações
+nano .env
 ```
 
-#### 3. Configure as variáveis de ambiente
-
-Crie um arquivo `.env` no diretório `backend/`:
+**Arquivo `.env` mínimo:**
 
 ```env
-# Banco de Dados
-DATABASE_URL="file:./dev.db"  # SQLite para desenvolvimento
-# DATABASE_URL="postgresql://user:password@localhost:5432/agendacerta"  # PostgreSQL para produção
-
-# Autenticação
-JWT_SECRET="sua_chave_secreta_super_segura_aqui"
-
-# Servidor
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/agendacerta"
+JWT_SECRET="sua-chave-secreta-muito-longa-e-aleatoria"
 PORT=5000
-NODE_ENV=development
-
-# Frontend (opcional)
-FRONTEND_URL="http://localhost:3000"
 ```
 
-#### 4. Configure o banco de dados
-
 ```bash
-cd backend
+# Executar migrações do Prisma
+npx prisma migrate dev
 
-# Gera o Prisma Client
-npx prisma generate
+# (Opcional) Popular o banco com dados de exemplo
+npm run prisma:seed
 
-# Executa as migrações
-npx prisma migrate dev --name init
-
-# (Opcional) Popula com dados de exemplo
-npx prisma db seed
-```
-
-#### 5. Inicie os servidores
-
-**Opção 1: Terminais separados**
-
-```bash
-# Terminal 1 - Backend
-cd backend
+# Iniciar o servidor
 npm run dev
+```
 
-# Terminal 2 - Frontend
-cd frontend
+O backend estará rodando em `http://localhost:5000`
+
+### **Passo 3: Configurar o Frontend**
+
+```bash
+cd ../frontend
+
+# Instalar dependências
+npm install
+
+# Copiar arquivo de exemplo de variáveis de ambiente
+cp .env.example .env
+
+# Editar o arquivo .env
+nano .env
+```
+
+**Arquivo `.env`:**
+
+```env
+REACT_APP_API_URL=http://localhost:5000
+```
+
+```bash
+# Iniciar o servidor de desenvolvimento
 npm start
 ```
 
-**Opção 2: Comando integrado**
+O frontend estará rodando em `http://localhost:3000`
 
-```bash
-npm run dev
-```
+### **Passo 4: Acessar o Sistema**
 
-#### 6. Acesse o sistema
-
-- Frontend: [http://localhost:3000](http://localhost:3000)
-- Backend API: [http://localhost:5000](http://localhost:5000)
+1. Abra o navegador em `http://localhost:3000`
+2. Faça login com as credenciais padrão (se usou o seed):
+   - **Email:** `admin@agendacerta.com`
+   - **Senha:** `admin123`
 
 ---
 
 ## 📁 Estrutura do Projeto
 
 ```
-agendacerta/
-│
+AgendaCerta/
 ├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma           # Schema do banco de dados
-│   │   └── migrations/             # Migrações do banco
-│   │
-│   ├── routes/                     # Rotas da API
-│   │   ├── auth.js                 # Autenticação (login, register)
-│   │   ├── admin.js                # Painel Super Admin
-│   │   ├── users.js                # Gerenciamento de usuários
-│   │   ├── courts.js               # Gerenciamento de recursos
-│   │   ├── courtTypes.js           # Tipos de recursos/esportes
-│   │   ├── clients.js              # Gerenciamento de clientes
-│   │   ├── reservations.js         # Sistema de reservas
-│   │   ├── products.js             # Controle de estoque
-│   │   ├── tabs.js                 # Sistema de comandas
-│   │   ├── dashboard.js            # Estatísticas e métricas
-│   │   ├── notifications.js        # Notificações em tempo real
-│   │   └── permissions.js          # Sistema de permissões
-│   │
-│   ├── middleware/
-│   │   └── auth.js                 # Middleware de autenticação e permissões
-│   │
-│   ├── server.js                   # Servidor principal Express
-│   ├── package.json                # Dependências do backend
-│   └── .env                        # Variáveis de ambiente (não commitado)
+│   ├── __tests__/              # Testes automatizados
+│   │   ├── integration/        # Testes de integração
+│   │   └── helpers/            # Helpers para testes
+│   ├── docs/                   # Documentação
+│   │   └── GOOGLE_CALENDAR_SETUP.md
+│   ├── middleware/             # Middlewares (auth, permissions)
+│   ├── prisma/                 # Schema e migrações do Prisma
+│   │   ├── schema.prisma       # Modelo de dados
+│   │   ├── migrations/         # Migrações SQL
+│   │   └── seed.js             # Dados de exemplo
+│   ├── routes/                 # Rotas da API
+│   │   ├── auth.js
+│   │   ├── clients.js
+│   │   ├── googleCalendar.js
+│   │   ├── products.js
+│   │   ├── reservations.js
+│   │   ├── resources.js
+│   │   ├── resourceTypes.js
+│   │   ├── tabs.js
+│   │   └── users.js
+│   ├── services/               # Serviços (lógica de negócio)
+│   │   └── googleCalendarService.js
+│   ├── validators/             # Validadores de entrada
+│   │   └── validators.js
+│   ├── server.js               # Ponto de entrada
+│   ├── package.json
+│   └── .env                    # Variáveis de ambiente
 │
 ├── frontend/
-│   ├── public/
-│   │   ├── index.html              # HTML principal
-│   │   └── assets/                 # Imagens, ícones, etc.
-│   │
+│   ├── public/                 # Arquivos públicos
+│   │   ├── index.html
+│   │   └── favicon.svg
 │   ├── src/
-│   │   ├── components/             # Componentes reutilizáveis
-│   │   │   ├── Header.js           # Cabeçalho da aplicação
-│   │   │   ├── Sidebar.js          # Menu lateral
-│   │   │   ├── Calendar.js         # Componente de calendário
-│   │   │   ├── MaskedInput.js      # Inputs com máscara
-│   │   │   ├── RoleRoute.js        # Proteção de rotas por role
-│   │   │   └── ...
-│   │   │
-│   │   ├── contexts/               # Contexts do React
-│   │   │   └── AuthContext.js      # Contexto de autenticação
-│   │   │
-│   │   ├── pages/                  # Páginas da aplicação
-│   │   │   ├── Login.js            # Tela de login
-│   │   │   ├── Register.js         # Tela de registro
-│   │   │   ├── Dashboard.js        # Dashboard principal
-│   │   │   ├── Users.js            # Gerenciamento de funcionários
-│   │   │   ├── Courts.js           # Gerenciamento de recursos
-│   │   │   ├── Clients.js          # Gerenciamento de clientes
-│   │   │   ├── Reservations.js     # Sistema de reservas
-│   │   │   ├── Products.js         # Controle de estoque
-│   │   │   ├── Tabs.js             # Comandas
-│   │   │   ├── TabDetails.js       # Detalhes da comanda
-│   │   │   ├── Profile.js          # Perfil do usuário
-│   │   │   ├── Notifications.js    # Central de notificações
-│   │   │   └── SuperAdminPanel.js  # Painel Super Admin
-│   │   │
-│   │   ├── services/               # Serviços de API
-│   │   │   └── api.js              # Configuração do Axios
-│   │   │
-│   │   ├── styles/                 # Arquivos de estilo
-│   │   │   └── App.css             # Estilos globais
-│   │   │
-│   │   ├── App.js                  # Componente raiz + rotas
-│   │   └── index.js                # Entry point React
-│   │
-│   └── package.json                # Dependências do frontend
+│   │   ├── components/         # Componentes reutilizáveis
+│   │   │   ├── GoogleCalendarIntegration.js
+│   │   │   └── Header.js
+│   │   ├── pages/              # Páginas da aplicação
+│   │   │   ├── Clients.js
+│   │   │   ├── Dashboard.js
+│   │   │   ├── Login.js
+│   │   │   ├── Products.js
+│   │   │   ├── Profile.js
+│   │   │   ├── Register.js
+│   │   │   ├── Reservations.js
+│   │   │   ├── Resources.js
+│   │   │   ├── SuperAdminPanel.js
+│   │   │   ├── TabDetails.js
+│   │   │   ├── Tabs.js
+│   │   │   └── Users.js
+│   │   ├── services/           # Serviços de API
+│   │   │   └── api.js
+│   │   ├── utils/              # Utilitários
+│   │   ├── App.js              # Componente principal
+│   │   └── index.js            # Ponto de entrada
+│   ├── package.json
+│   └── .env                    # Variáveis de ambiente
 │
-├── README.md                       # Este arquivo
-├── package.json                    # Scripts globais
-└── .gitignore                      # Arquivos ignorados pelo Git
+├── PRODUCTION_DEPLOYMENT.md    # Guia de deploy em produção
+├── README.md                   # Este arquivo
+└── .gitignore
 ```
 
 ---
 
 ## 🔐 Variáveis de Ambiente
 
-### Backend (.env)
+### **Backend (.env)**
 
 ```env
-# Banco de Dados
-DATABASE_URL="file:./dev.db"                    # Desenvolvimento
-# DATABASE_URL="postgresql://..."              # Produção
+# Ambiente
+NODE_ENV=development
 
-# Segurança
-JWT_SECRET="sua_chave_super_segura_256_bits"   # Mínimo 32 caracteres
-
-# Servidor
+# Porta do servidor
 PORT=5000
-NODE_ENV=development                            # development | production
 
-# CORS (opcional)
-FRONTEND_URL="http://localhost:3000"            # URL do frontend
+# URLs
+BACKEND_URL=http://localhost:5000
+FRONTEND_URL=http://localhost:3000
+
+# Banco de Dados PostgreSQL
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/agendacerta"
+
+# JWT
+JWT_SECRET=sua-chave-secreta-muito-longa-e-aleatoria-aqui-min-32-chars
+JWT_EXPIRES_IN=7d
+
+# Google Calendar Integration (Opcional)
+GOOGLE_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-sua-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:5000/api/google-calendar/oauth2callback
+GOOGLE_WEBHOOK_TOKEN=seu-token-webhook-secreto-aleatorio
 ```
 
-### Frontend
+### **Frontend (.env)**
 
-O frontend usa a URL do backend configurada em `src/services/api.js`:
-
-```javascript
-// Desenvolvimento
-const API_URL = 'http://localhost:5000';
-
-// Produção
-const API_URL = 'https://seu-backend.railway.app';
+```env
+REACT_APP_API_URL=http://localhost:5000
 ```
 
 ---
 
-## 🛠️ Scripts Disponíveis
+## 📜 Scripts Disponíveis
 
-### Raiz do Projeto
+### **Backend**
 
 ```bash
-npm run install-all    # Instala dependências do backend e frontend
-npm run dev            # Inicia backend e frontend simultaneamente
+# Desenvolvimento
+npm run dev              # Iniciar servidor em modo de desenvolvimento (nodemon)
+
+# Produção
+npm start                # Iniciar servidor em modo de produção
+
+# Prisma
+npm run prisma:generate  # Gerar cliente Prisma
+npm run prisma:migrate   # Executar migrações
+npm run prisma:seed      # Popular banco com dados de exemplo
+
+# Testes
+npm test                 # Executar todos os testes
+npm run test:watch       # Executar testes em modo watch
+npm run test:coverage    # Gerar relatório de cobertura
 ```
 
-### Backend
+### **Frontend**
 
 ```bash
-npm run dev            # Inicia servidor em modo desenvolvimento (nodemon)
-npm start              # Inicia servidor em produção
-npx prisma studio      # Abre interface visual do banco de dados
-npx prisma migrate dev # Cria nova migração do banco
-npx prisma generate    # Gera o Prisma Client
-```
+# Desenvolvimento
+npm start                # Iniciar servidor de desenvolvimento
 
-### Frontend
-
-```bash
-npm start              # Inicia aplicação React (development)
-npm run build          # Build para produção
-npm test               # Executa testes
+# Produção
+npm run build            # Criar build de produção
+npm test                 # Executar testes
 ```
 
 ---
 
 ## 🔌 API Endpoints
 
-### Autenticação
+### **Autenticação**
 
-| Método | Endpoint | Descrição | Autenticação |
-|--------|----------|-----------|--------------|
-| POST | `/api/auth/register` | Registrar novo complexo | Não |
-| POST | `/api/auth/login` | Login no sistema | Não |
-| GET | `/api/auth/me` | Obter dados do usuário logado | Sim |
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/api/auth/register` | Registrar novo usuário |
+| POST | `/api/auth/login` | Fazer login |
+| GET | `/api/auth/me` | Obter dados do usuário logado |
 
-### Usuários
+### **Clientes**
 
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/users` | Listar funcionários | users:view |
-| POST | `/api/users` | Criar funcionário | users:create |
-| GET | `/api/users/:id` | Buscar funcionário | users:view |
-| PUT | `/api/users/:id` | Atualizar funcionário | users:edit |
-| DELETE | `/api/users/:id` | Deletar funcionário | users:delete |
-| PUT | `/api/users/:id/permissions` | Atualizar permissões | users:edit |
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/clients` | Listar clientes (com paginação) |
+| GET | `/api/clients/:id` | Obter cliente específico |
+| POST | `/api/clients` | Criar novo cliente |
+| PUT | `/api/clients/:id` | Atualizar cliente |
+| DELETE | `/api/clients/:id` | Excluir cliente |
 
-### Recursos
+### **Recursos**
 
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/courts` | Listar recursos | courts:view |
-| POST | `/api/courts` | Criar recurso | courts:create |
-| GET | `/api/courts/:id` | Buscar recurso | courts:view |
-| PUT | `/api/courts/:id` | Atualizar recurso | courts:edit |
-| DELETE | `/api/courts/:id` | Deletar recurso | courts:delete |
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/resources` | Listar recursos |
+| GET | `/api/resources/:id` | Obter recurso específico |
+| POST | `/api/resources` | Criar novo recurso |
+| PUT | `/api/resources/:id` | Atualizar recurso |
+| DELETE | `/api/resources/:id` | Excluir recurso |
 
-### Clientes
+### **Agendamentos (Reservations)**
 
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/clients` | Listar clientes | clients:view |
-| POST | `/api/clients` | Criar cliente | clients:create |
-| GET | `/api/clients/:id` | Buscar cliente (com histórico) | clients:view |
-| PUT | `/api/clients/:id` | Atualizar cliente | clients:edit |
-| DELETE | `/api/clients/:id` | Deletar cliente | clients:delete |
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/reservations` | Listar agendamentos (com paginação) |
+| GET | `/api/reservations/:id` | Obter agendamento específico |
+| POST | `/api/reservations` | Criar novo agendamento |
+| PUT | `/api/reservations/:id` | Atualizar agendamento |
+| DELETE | `/api/reservations/:id` | Cancelar agendamento |
 
-### Reservas
+### **Google Calendar**
 
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/reservations` | Listar reservas (com filtros) | reservations:view |
-| POST | `/api/reservations` | Criar reserva | reservations:create |
-| GET | `/api/reservations/:id` | Buscar reserva | reservations:view |
-| PUT | `/api/reservations/:id` | Atualizar reserva | reservations:edit |
-| DELETE | `/api/reservations/:id` | Cancelar reserva | reservations:cancel |
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| GET | `/api/google-calendar/auth` | Iniciar autenticação OAuth 2.0 |
+| GET | `/api/google-calendar/oauth2callback` | Callback do Google |
+| GET | `/api/google-calendar/status` | Verificar status da integração |
+| GET | `/api/google-calendar/health` | Health check da integração |
+| POST | `/api/google-calendar/watch` | Iniciar sincronização bidirecional |
+| POST | `/api/google-calendar/webhook` | Receber notificações do Google |
 
-**Parâmetros de Query para Listagem:**
-- `courtId` - Filtrar por recurso
-- `clientId` - Filtrar por cliente
-- `startDate` - Filtrar por data inicial
-- `endDate` - Filtrar por data final
-- `status` - Filtrar por status (ACTIVE, CANCELLED)
-
-### Produtos (Estoque)
-
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/products` | Listar produtos | products:view |
-| POST | `/api/products` | Criar produto | products:create |
-| GET | `/api/products/:id` | Buscar produto | products:view |
-| PUT | `/api/products/:id` | Atualizar produto | products:edit |
-| POST | `/api/products/:id/stock/add` | Adicionar estoque | products:edit |
-| POST | `/api/products/:id/stock/remove` | Remover estoque | products:edit |
-| DELETE | `/api/products/:id` | Deletar produto | products:delete |
-
-### Comandas
-
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/tabs` | Listar comandas | tabs:view |
-| POST | `/api/tabs` | Criar comanda | tabs:create |
-| GET | `/api/tabs/:id` | Buscar comanda | tabs:view |
-| POST | `/api/tabs/:id/items` | Adicionar item | tabs:edit |
-| DELETE | `/api/tabs/:id/items/:itemId` | Remover item | tabs:edit |
-| POST | `/api/tabs/:id/close` | Fechar comanda | tabs:close |
-| DELETE | `/api/tabs/:id` | Cancelar comanda | tabs:cancel |
-
-### Dashboard
-
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/dashboard/overview` | Estatísticas gerais | Autenticado |
-| GET | `/api/dashboard/upcoming` | Próximos horários | Autenticado |
-| GET | `/api/dashboard/revenue` | Relatório de receitas | Autenticado |
-| GET | `/api/dashboard/occupancy` | Taxa de ocupação | Autenticado |
-
-### Super Admin
-
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/admin/pending` | Listar complexos pendentes | SUPER_ADMIN |
-| PUT | `/api/admin/:id/approve` | Aprovar complexo | SUPER_ADMIN |
-| PUT | `/api/admin/:id/reject` | Rejeitar complexo | SUPER_ADMIN |
-| PUT | `/api/admin/:id/suspend` | Suspender complexo | SUPER_ADMIN |
-| PUT | `/api/admin/:id/reactivate` | Reativar complexo | SUPER_ADMIN |
-| GET | `/api/admin/stats` | Estatísticas gerais | SUPER_ADMIN |
-
-### Notificações
-
-| Método | Endpoint | Descrição | Permissão |
-|--------|----------|-----------|-----------|
-| GET | `/api/notifications` | Listar notificações | Autenticado |
-| PUT | `/api/notifications/:id/read` | Marcar como lida | Autenticado |
+**Documentação completa da API:** `http://localhost:5000/api-docs` (Swagger)
 
 ---
 
-## 📊 Modelo de Dados
+## 🔄 Integração com Google Calendar
 
-### User (Usuário)
-```prisma
-model User {
-  id          String   @id @default(cuid())
-  firstName   String
-  lastName    String
-  email       String   @unique
-  password    String
-  cpf         String?
-  cnpj        String?
-  phone       String?
-  role        Role     @default(SEMI_ADMIN)
-  status      UserStatus @default(PENDING)
-  complexId   String?
-  complex     Complex? @relation(fields: [complexId])
-  permissions String?  // JSON com permissões
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
+O AgendaCerta possui integração bidirecional completa com o Google Calendar.
 
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  SEMI_ADMIN
-}
+### **Configuração**
 
-enum UserStatus {
-  PENDING
-  ACTIVE
-  REJECTED
-  SUSPENDED
-}
+1. Siga o guia completo em [`backend/docs/GOOGLE_CALENDAR_SETUP.md`](backend/docs/GOOGLE_CALENDAR_SETUP.md)
+2. Configure as credenciais do Google Cloud
+3. Adicione as variáveis de ambiente no `.env`
+4. Autentique no AgendaCerta (Perfil → Conectar Google Calendar)
+
+### **Funcionalidades**
+
+- ✅ Sincronização automática de agendamentos
+- ✅ Retry logic com backoff exponencial
+- ✅ Tratamento robusto de erros
+- ✅ Renovação automática de tokens
+- ✅ Webhooks para sincronização em tempo real
+- ✅ Logs detalhados para debugging
+
+### **Fluxo de Sincronização**
+
 ```
-
-### Complex (Complexo Esportivo)
-```prisma
-model Complex {
-  id      String  @id @default(cuid())
-  name    String
-  cnpj    String  @unique
-  users   User[]
-  courts  Court[]
-  clients Client[]
-  products Product[]
-}
-```
-
-### Court (Recurso)
-```prisma
-model Court {
-  id           String    @id @default(cuid())
-  name         String
-  sportType    String    // futebol, beach tennis, vôlei, etc.
-  capacity     Int
-  pricePerHour Float
-  description  String?
-  status       CourtStatus @default(AVAILABLE)
-  complexId    String
-  complex      Complex   @relation(fields: [complexId])
-  reservations Reservation[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-}
-
-enum CourtStatus {
-  AVAILABLE
-  OCCUPIED
-  MAINTENANCE
-}
-```
-
-### Client (Cliente)
-```prisma
-model Client {
-  id           String        @id @default(cuid())
-  fullName     String
-  phone        String
-  email        String?
-  cpf          String?
-  complexId    String
-  complex      Complex       @relation(fields: [complexId])
-  reservations Reservation[]
-  tabs         Tab[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-```
-
-### Reservation (Reserva)
-```prisma
-model Reservation {
-  id               String          @id @default(cuid())
-  courtId          String
-  court            Court           @relation(fields: [courtId])
-  clientId         String
-  client           Client          @relation(fields: [clientId])
-  startTime        DateTime
-  endTime          DateTime
-  status           ReservationStatus @default(ACTIVE)
-  isRecurring      Boolean         @default(false)
-  recurringGroupId String?
-  recurringGroup   RecurringGroup? @relation(fields: [recurringGroupId])
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-}
-
-enum ReservationStatus {
-  ACTIVE
-  CANCELLED
-}
-```
-
-### RecurringGroup (Grupo de Recorrência)
-```prisma
-model RecurringGroup {
-  id           String        @id @default(cuid())
-  frequency    String        // WEEKLY, BIWEEKLY, MONTHLY
-  dayOfWeek    Int           // 0-6 (Domingo-Sábado)
-  startDate    DateTime
-  endDate      DateTime?
-  reservations Reservation[]
-}
-```
-
-### Product (Produto)
-```prisma
-model Product {
-  id         String   @id @default(cuid())
-  name       String
-  description String?
-  price      Float
-  stock      Int      @default(0)
-  unit       String   // un, kg, litro, etc.
-  expiryDate DateTime?
-  complexId  String
-  complex    Complex  @relation(fields: [complexId])
-  tabItems   TabItem[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-```
-
-### Tab (Comanda)
-```prisma
-model Tab {
-  id            String   @id @default(cuid())
-  clientId      String
-  client        Client   @relation(fields: [clientId])
-  reservationId String?
-  total         Float    @default(0)
-  status        TabStatus @default(OPEN)
-  items         TabItem[]
-  paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-enum TabStatus {
-  OPEN
-  CLOSED
-  CANCELLED
-}
-```
-
-### TabItem (Item da Comanda)
-```prisma
-model TabItem {
-  id          String  @id @default(cuid())
-  tabId       String
-  tab         Tab     @relation(fields: [tabId])
-  productId   String?
-  product     Product? @relation(fields: [productId])
-  description String
-  quantity    Float
-  unitPrice   Float
-  total       Float
-}
+AgendaCerta                     Google Calendar
+    |                                |
+    |--- Criar Agendamento --------->|
+    |<-- Evento Criado --------------|
+    |                                |
+    |--- Atualizar Agendamento ----->|
+    |<-- Evento Atualizado ----------|
+    |                                |
+    |<-- Evento Alterado ------------|
+    |--- Agendamento Atualizado -----|
+    |                                |
+    |--- Cancelar Agendamento ------>|
+    |<-- Evento Excluído ------------|
 ```
 
 ---
 
-## 🚀 Deploy
+## 🧪 Testes
 
-### Backend (Railway)
+O AgendaCerta possui **48 testes automatizados** cobrindo:
 
-1. **Crie uma conta no Railway**
-2. **Crie um novo projeto**
-3. **Conecte seu repositório GitHub**
-4. **Configure as variáveis de ambiente:**
-   ```env
-   DATABASE_URL=postgresql://...
-   JWT_SECRET=sua_chave_secreta
-   NODE_ENV=production
-   FRONTEND_URL=https://seu-frontend.vercel.app
-   ```
-5. **Railway detecta automaticamente o Node.js e faz deploy**
+- ✅ Autenticação (12 testes)
+- ✅ CRUD de Recursos (11 testes)
+- ✅ CRUD de Agendamentos (11 testes)
+- ✅ Segurança e Autorização (14 testes)
 
-### Frontend (Vercel)
+### **Executar Testes**
 
-1. **Crie uma conta no Vercel**
-2. **Importe seu repositório**
-3. **Configure:**
-   - Build Command: `npm run build`
-   - Output Directory: `build`
-   - Root Directory: `frontend`
-4. **Configure a variável de ambiente:**
-   ```
-   REACT_APP_API_URL=https://seu-backend.railway.app
-   ```
-5. **Deploy automático a cada push**
+```bash
+cd backend
 
-### Banco de Dados PostgreSQL
+# Executar todos os testes
+npm test
 
-**Opção 1: Railway**
-- Adicione PostgreSQL no seu projeto Railway
-- Copie a DATABASE_URL gerada
+# Executar testes em modo watch
+npm run test:watch
 
-**Opção 2: Supabase**
-- Crie um projeto no Supabase
-- Copie a connection string
+# Gerar relatório de cobertura
+npm run test:coverage
+```
 
-**Opção 3: Neon**
-- Crie um banco serverless no Neon
-- Copie a connection string
+### **Configurar Banco de Dados de Teste**
+
+Crie um arquivo `.env.test`:
+
+```env
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/agendacerta_test"
+JWT_SECRET="test-secret-key"
+NODE_ENV="test"
+```
 
 ---
 
-## 🛡️ Segurança
+## 🚀 Deploy em Produção
 
-### Medidas Implementadas
+Para fazer o deploy em produção, siga o guia completo:
 
-✅ **Autenticação JWT**
-- Tokens seguros com expiração
-- Refresh tokens (opcional)
+📚 **[PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)**
 
-✅ **Hash de Senhas**
-- bcryptjs com salt rounds
+O guia cobre:
+- ✅ Configuração do servidor (Ubuntu, Node.js, Nginx, PM2)
+- ✅ Setup do banco de dados PostgreSQL
+- ✅ Deploy do backend e frontend
+- ✅ Configuração do Google Cloud
+- ✅ Variáveis de ambiente
+- ✅ SSL/HTTPS com Certbot
+- ✅ Monitoramento e logs
+- ✅ Backup automático
+- ✅ Checklist final
 
-✅ **Rate Limiting**
-- Proteção contra força bruta
-- Limite de requisições por IP
+---
 
-✅ **Validação de Dados**
-- express-validator em todas as rotas
-- Sanitização de inputs
+## 🔒 Segurança
 
-✅ **Headers de Segurança**
-- helmet.js configurado
-- CSP, HSTS, etc.
+### **Autenticação e Autorização**
+- JWT com expiração configurável
+- Senhas criptografadas com bcrypt (10 rounds)
+- Permissões granulares por recurso
+- Isolamento de dados por estabelecimento (multi-tenancy)
 
-✅ **CORS Configurado**
-- Apenas origens permitidas
+### **Proteção contra Ataques**
+- SQL Injection (Prisma ORM)
+- XSS (express-validator, xss-clean)
+- Rate Limiting (express-rate-limit)
+- Helmet (headers de segurança)
+- HPP (HTTP Parameter Pollution)
+- Mongo Sanitize (NoSQL Injection)
 
-✅ **Proteção XSS**
-- xss-clean middleware
-
-✅ **SQL Injection Protection**
-- Prisma ORM com queries parametrizadas
-
-✅ **Permissões Granulares**
-- Sistema de roles e permissões por módulo
-
-### Boas Práticas
-
-- ✅ Nunca commitar arquivos `.env`
-- ✅ Usar HTTPS em produção
-- ✅ Manter dependências atualizadas
-- ✅ Logs de segurança
-- ✅ Backups regulares do banco
+### **Boas Práticas**
+- Variáveis de ambiente para dados sensíveis
+- HTTPS obrigatório em produção
+- Validação de entrada em todas as rotas
+- Logs de auditoria
+- Tokens de webhook para validação
 
 ---
 
 ## 🤝 Contribuindo
 
-Contribuições são muito bem-vindas! Para contribuir:
+Contribuições são bem-vindas! Para contribuir:
 
-1. **Fork o projeto**
-2. **Crie uma branch para sua feature**
-   ```bash
-   git checkout -b feature/MinhaNovaFeature
-   ```
-3. **Commit suas mudanças**
-   ```bash
-   git commit -m 'Adiciona nova funcionalidade X'
-   ```
-4. **Push para a branch**
-   ```bash
-   git push origin feature/MinhaNovaFeature
-   ```
-5. **Abra um Pull Request**
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adicionar MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
 
-### Padrões de Código
+### **Padrões de Código**
 
-- Use ESLint e Prettier
-- Siga o padrão de commits semânticos
-- Escreva testes para novas funcionalidades
-- Documente código complexo
-- Mantenha o código limpo e legível
+- Use ESLint para linting
+- Siga o padrão de commits convencionais
+- Adicione testes para novas funcionalidades
+- Documente mudanças significativas
 
 ---
 
-## 📝 Licença
+## 📄 Licença
 
-Este projeto está sob a licença **MIT**. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-
-## 👥 Autores
-
-- **AgendaCerta Team** - Desenvolvimento e manutenção
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
 
-## 📧 Suporte
+## 📞 Suporte
 
-Para dúvidas, sugestões ou reportar bugs:
-
-- 📧 Email: suporte@agendacerta.com
-- 💬 Issues: [GitHub Issues](https://github.com/seu-usuario/agendacerta/issues)
-- 📚 Documentação: [Wiki do Projeto](https://github.com/seu-usuario/agendacerta/wiki)
+- **Email:** agendacerta@gmail.com
+- **WhatsApp:** (53) 98125-9200
+- **GitHub:** https://github.com/pierreiost/AgendaCerta
 
 ---
 
-## 🎉 Agradecimentos
+## 🙏 Agradecimentos
 
-- Comunidade React
-- Comunidade Node.js
-- Prisma Team
-- Todos os contribuidores
+- Equipe do Prisma pela excelente ORM
+- Google pela API do Calendar
+- Comunidade open source
 
 ---
 
-<div align="center">
+**Desenvolvido com ❤️ pela equipe AgendaCerta**
 
-**Feito com ❤️ para revolucionar a gestão de agendamentos e serviços**
-
-⭐ Se este projeto foi útil, considere dar uma estrela!
-
-</div>
+**Última atualização:** Dezembro de 2024
