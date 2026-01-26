@@ -27,6 +27,8 @@ const Products = () => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isStockSaving, setIsStockSaving] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -107,7 +109,10 @@ const Products = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSaving) return; // Prevent double submit
+
     setError('');
+    setIsSaving(true);
 
     try {
       if (editingProduct) {
@@ -121,13 +126,19 @@ const Products = () => {
       loadProducts();
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
+      console.error('Erro ao salvar produto:', error);
       setError(error.response?.data?.error || 'Erro ao salvar produto');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleStockSubmit = async (e) => {
     e.preventDefault();
+    if (isStockSaving) return; // Prevent double submit
+
     setError('');
+    setIsStockSaving(true);
 
     try {
       if (stockAction === 'add') {
@@ -141,7 +152,10 @@ const Products = () => {
       loadProducts();
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
+      console.error('Erro ao atualizar estoque:', error);
       setError(error.response?.data?.error || 'Erro ao atualizar estoque');
+    } finally {
+      setIsStockSaving(false);
     }
   };
 
@@ -411,11 +425,11 @@ const Products = () => {
                 </div>
 
                 <div className="flex" style={{ gap: '1rem', marginTop: '1.5rem' }}>
-                  <button type="button" className="btn btn-outline" onClick={closeModal} style={{ flex: 1 }}>
+                  <button type="button" className="btn btn-outline" onClick={closeModal} style={{ flex: 1 }} disabled={isSaving}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                    {editingProduct ? 'Atualizar' : 'Cadastrar'}
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isSaving}>
+                    {isSaving ? 'Salvando...' : (editingProduct ? 'Atualizar' : 'Cadastrar')}
                   </button>
                 </div>
               </form>
@@ -473,15 +487,16 @@ const Products = () => {
                 </div>
 
                 <div className="flex" style={{ gap: '1rem', marginTop: '1.5rem' }}>
-                  <button type="button" className="btn btn-outline" onClick={closeStockModal} style={{ flex: 1 }}>
+                  <button type="button" className="btn btn-outline" onClick={closeStockModal} style={{ flex: 1 }} disabled={isStockSaving}>
                     Cancelar
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className={`btn ${stockAction === 'add' ? 'btn-primary' : 'btn-danger'}`}
                     style={{ flex: 1 }}
+                    disabled={isStockSaving}
                   >
-                    {stockAction === 'add' ? 'Adicionar' : 'Remover'}
+                    {isStockSaving ? 'Salvando...' : (stockAction === 'add' ? 'Adicionar' : 'Remover')}
                   </button>
                 </div>
               </form>

@@ -71,6 +71,8 @@ const Reservations = () => {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [savingReservation, setSavingReservation] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   const generateRoundTimeSlots = () => {
     const slots = [];
@@ -246,6 +248,9 @@ const Reservations = () => {
   };
 
   const handleConfirmPayment = async () => {
+    if (processingPayment) return; // Prevent double submit
+
+    setProcessingPayment(true);
     try {
       await reservationService.cancel(paymentFormData.reservationId);
       setSuccess('Pagamento confirmado! Reserva finalizada.');
@@ -254,14 +259,16 @@ const Reservations = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Erro ao confirmar pagamento:', error);
-      
+
       if (error.response?.data?.error?.includes('comanda aberta')) {
         setError('Esta reserva possui uma comanda aberta. Feche a comanda antes de finalizar.');
       } else {
         setError(error.response?.data?.error || 'Erro ao finalizar reserva');
       }
-      
+
       setTimeout(() => setError(''), 5000);
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -289,10 +296,12 @@ const Reservations = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (savingReservation) return; // Prevent double submit
+
     setError('');
 
     if (!formData.resourceId) {
-      setError('Selecione uma recurso');
+      setError('Selecione um recurso');
       return;
     }
 
@@ -332,6 +341,8 @@ const Reservations = () => {
       return;
     }
 
+    setSavingReservation(true);
+
     try {
       const startDateTime = new Date(dateTimeString);
       const duration = parseFloat(formData.durationInHours);
@@ -347,7 +358,7 @@ const Reservations = () => {
 
       if (formData.isRecurring) {
         reservationData.frequency = formData.frequency;
-        
+
         if (formData.endDate) {
           reservationData.endDate = new Date(formData.endDate).toISOString();
         }
@@ -362,6 +373,8 @@ const Reservations = () => {
     } catch (error) {
       console.error('Erro ao criar reserva:', error);
       setError(error.response?.data?.error || 'Erro ao criar reserva. Verifique os dados e tente novamente.');
+    } finally {
+      setSavingReservation(false);
     }
   };
 
@@ -1514,22 +1527,23 @@ const Reservations = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={savingReservation}
                   style={{
                     flex: 1,
                     padding: '0.875rem',
                     borderRadius: '10px',
                     border: 'none',
-                    background: '#34a853',
+                    background: savingReservation ? '#9ca3af' : '#34a853',
                     color: 'white',
-                    cursor: 'pointer',
+                    cursor: savingReservation ? 'not-allowed' : 'pointer',
                     fontWeight: '600',
                     fontSize: '0.95rem',
                     transition: 'all 0.2s'
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#2d8e47'}
-                  onMouseOut={(e) => e.target.style.background = '#34a853'}
+                  onMouseOver={(e) => !savingReservation && (e.target.style.background = '#2d8e47')}
+                  onMouseOut={(e) => !savingReservation && (e.target.style.background = '#34a853')}
                 >
-                  Criar Reserva
+                  {savingReservation ? 'Criando...' : 'Criar Reserva'}
                 </button>
               </div>
             </form>
@@ -2043,16 +2057,17 @@ const Reservations = () => {
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={handleConfirmPayment}
+                  disabled={processingPayment}
                   style={{
                     flex: 1,
                     padding: '1rem',
                     borderRadius: '12px',
                     border: 'none',
-                    background: '#34a853',
+                    background: processingPayment ? '#9ca3af' : '#34a853',
                     color: 'white',
-                    cursor: 'pointer',
+                    cursor: processingPayment ? 'not-allowed' : 'pointer',
                     fontWeight: '600',
                     fontSize: '1rem',
                     display: 'flex',
@@ -2061,11 +2076,11 @@ const Reservations = () => {
                     gap: '0.5rem',
                     transition: 'all 0.2s'
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#2d8e47'}
-                  onMouseOut={(e) => e.target.style.background = '#34a853'}
+                  onMouseOver={(e) => !processingPayment && (e.target.style.background = '#2d8e47')}
+                  onMouseOut={(e) => !processingPayment && (e.target.style.background = '#34a853')}
                 >
                   <CheckCircle size={20} />
-                  Confirmar Pagamento
+                  {processingPayment ? 'Processando...' : 'Confirmar Pagamento'}
                 </button>
               </div>
             </div>
