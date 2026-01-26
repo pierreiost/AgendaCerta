@@ -23,11 +23,25 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log error for debugging
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.response?.data?.error || error.message
+    });
+
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+
+    // Network error handling
+    if (!error.response) {
+      error.userMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+    }
+
     return Promise.reject(error);
   }
 );

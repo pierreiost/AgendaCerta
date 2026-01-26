@@ -8,34 +8,48 @@ export const usePermissions = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadPermissions = async () => {
+      try {
+        if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+          if (isMounted) {
+            setPermissions(['*']);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const response = await api.get(`/permissions/user/${user.id}`);
+        if (isMounted) {
+          const userPermissions = response.data.permissions.map(
+            p => `${p.module}.${p.action}`
+          );
+          setPermissions(userPermissions);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar permissões:', error);
+        if (isMounted) {
+          setPermissions([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
     if (user) {
       loadPermissions();
     } else {
       setPermissions([]);
       setLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
-
-  const loadPermissions = async () => {
-    try {
-      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
-        setPermissions(['*']);
-        setLoading(false);
-        return;
-      }
-
-      const response = await api.get(`/permissions/user/${user.id}`);
-      const userPermissions = response.data.permissions.map(
-        p => `${p.module}.${p.action}`
-      );
-      setPermissions(userPermissions);
-    } catch (error) {
-      console.error('Erro ao carregar permissões:', error);
-      setPermissions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const hasPermission = (module, action) => {
     if (!user) return false;
