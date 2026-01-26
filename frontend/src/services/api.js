@@ -162,4 +162,19 @@ export const googleCalendarService = {
   startWatch: () => api.post('/google-calendar/watch', {}),
 };
 
+export const serviceOrderService = {
+  getAll: (params) => api.get('/service-orders', { params }),
+  getById: (id) => api.get(`/service-orders/${id}`),
+  create: (data) => api.post('/service-orders', data),
+  update: (id, data) => api.put(`/service-orders/${id}`, data),
+  delete: (id) => api.delete(`/service-orders/${id}`),
+  // Items
+  addItem: (orderId, item) => api.post(`/service-orders/${orderId}/items`, item),
+  updateItem: (orderId, itemId, data) => api.put(`/service-orders/${orderId}/items/${itemId}`, data),
+  removeItem: (orderId, itemId) => api.delete(`/service-orders/${orderId}/items/${itemId}`),
+  // Status
+  updateStatus: (id, status) => api.patch(`/service-orders/${id}/status`, { status }),
+  finish: (id) => api.post(`/service-orders/${id}/finish`),
+};
+
 export default api;
