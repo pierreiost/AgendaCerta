@@ -1,5 +1,7 @@
 const { google } = require('googleapis');
 const { PrismaClient } = require('@prisma/client');
+const { maskId, maskName, maskEmail, maskPhone, safeLogger, createSafeLogReservation, sanitizeError } = require('../utils/piiMasking');
+const { encrypt, decrypt, isEncrypted } = require('../utils/encryption');
 
 const prisma = new PrismaClient();
 
@@ -29,6 +31,7 @@ function sleep(ms) {
 
 /**
  * Executa uma função com retry automático em caso de falha.
+ * LGPD: Logs sanitizados sem PII
  * @param {Function} fn - A função a ser executada.
  * @param {string} operationName - Nome da operação (para logs).
  * @param {number} retryCount - Contador de tentativas (uso interno).
@@ -46,25 +49,28 @@ async function retryOperation(fn, operationName, retryCount = 0) {
         RETRY_CONFIG.initialDelay * Math.pow(RETRY_CONFIG.backoffMultiplier, retryCount),
         RETRY_CONFIG.maxDelay
       );
-      
-      console.warn(
+
+      // LGPD: Log sem dados sensíveis
+      safeLogger.warn(
         `[GoogleCalendar] ${operationName} falhou (tentativa ${retryCount + 1}/${RETRY_CONFIG.maxRetries}). ` +
-        `Erro: ${error.message}. Tentando novamente em ${delay}ms...`
+        `Tentando novamente em ${delay}ms...`,
+        { errorCode: error.code, status: error.response?.status }
       );
-      
+
       await sleep(delay);
       return retryOperation(fn, operationName, retryCount + 1);
     }
 
-    // Falha definitiva
-    console.error(
-      `[GoogleCalendar] ${operationName} falhou definitivamente após ${retryCount} tentativas. ` +
-      `Erro: ${error.message}`
+    // Falha definitiva - LGPD: Log sanitizado
+    safeLogger.error(
+      `[GoogleCalendar] ${operationName} falhou definitivamente após ${retryCount} tentativas.`,
+      error,
+      { operation: operationName }
     );
-    
-    // Log detalhado do erro
+
+    // Log detalhado do erro (sem PII)
     logError(operationName, error);
-    
+
     return null;
   }
 }
@@ -98,28 +104,72 @@ function isRetryableError(error) {
 }
 
 /**
- * Registra um erro detalhado no log.
+ * Registra um erro detalhado no log - LGPD COMPLIANT
+ * Não inclui PII (nome, email, telefone) nos logs
  * @param {string} operation - Nome da operação.
  * @param {Error} error - O erro ocorrido.
  */
 function logError(operation, error) {
+  // LGPD: Sanitizar mensagem de erro para remover PII acidentalmente incluído
+  const sanitized = sanitizeError(error);
+
   const errorLog = {
     timestamp: new Date().toISOString(),
     operation,
-    message: error.message,
+    message: sanitized.message,
     code: error.code,
     status: error.response?.status,
     statusText: error.response?.statusText,
-    data: error.response?.data,
-    stack: error.stack,
+    // LGPD: Não incluir data bruta que pode conter PII
+    // LGPD: Não incluir stack em produção
+    ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {})
   };
 
   console.error('[GoogleCalendar] Erro detalhado:', JSON.stringify(errorLog, null, 2));
 }
 
 /**
+ * Descriptografa um token se estiver criptografado
+ * @param {string} token - Token possivelmente criptografado
+ * @returns {string} Token descriptografado
+ */
+function getDecryptedToken(token) {
+  if (!token) return null;
+
+  try {
+    // Verifica se o token está no formato criptografado
+    if (isEncrypted(token)) {
+      return decrypt(token);
+    }
+    // Token não criptografado (legado) - retorna como está
+    return token;
+  } catch (error) {
+    safeLogger.error('[GoogleCalendar] Erro ao descriptografar token', error);
+    return null;
+  }
+}
+
+/**
+ * Criptografa um token para armazenamento seguro
+ * @param {string} token - Token a ser criptografado
+ * @returns {string} Token criptografado
+ */
+function getEncryptedToken(token) {
+  if (!token) return null;
+
+  try {
+    return encrypt(token);
+  } catch (error) {
+    safeLogger.error('[GoogleCalendar] Erro ao criptografar token', error);
+    // Em caso de falha, armazenar sem criptografia (não ideal, mas não perde o token)
+    return token;
+  }
+}
+
+/**
  * Obtém um cliente Google Calendar autenticado para um complexo.
  * Se o token de acesso estiver expirado, ele é renovado automaticamente usando o refresh token.
+ * SEGURANÇA: Tokens são armazenados criptografados
  * @param {string} complexId - O ID do complexo.
  * @returns {Promise<google.calendar.Calendar | null>} O cliente Google Calendar ou null se não houver token.
  */
@@ -130,56 +180,87 @@ async function getAuthenticatedCalendarClient(complexId) {
     });
 
     if (!tokenRecord) {
-      console.warn(`[GoogleCalendar] Nenhum token encontrado para o complexo ${complexId}.`);
+      // LGPD: Não logar o complexId completo
+      safeLogger.warn(`[GoogleCalendar] Nenhum token encontrado para o complexo.`, {
+        complexId: maskId(complexId)
+      });
+      return null;
+    }
+
+    // SEGURANÇA: Descriptografar tokens antes de usar
+    const accessToken = getDecryptedToken(tokenRecord.accessToken);
+    const refreshToken = getDecryptedToken(tokenRecord.refreshToken);
+
+    if (!accessToken || !refreshToken) {
+      safeLogger.error('[GoogleCalendar] Falha ao descriptografar tokens');
       return null;
     }
 
     oauth2Client.setCredentials({
-      access_token: tokenRecord.accessToken,
-      refresh_token: tokenRecord.refreshToken,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       expiry_date: tokenRecord.expiryDate.getTime(),
     });
 
     // Verifica se o token expirou
     if (new Date() > tokenRecord.expiryDate) {
-      console.log(`[GoogleCalendar] Token expirado para o complexo ${complexId}. Renovando...`);
-      
+      // LGPD: Log sem ID completo
+      safeLogger.info(`[GoogleCalendar] Token expirado. Renovando...`, {
+        complexId: maskId(complexId)
+      });
+
       try {
         const { credentials } = await oauth2Client.refreshAccessToken();
-        
-        // Atualiza o token no banco de dados
+
+        // SEGURANÇA: Criptografar o novo access token antes de salvar
+        const encryptedAccessToken = getEncryptedToken(credentials.access_token);
+
+        // Atualiza o token no banco de dados (criptografado)
         await prisma.googleCalendarToken.update({
           where: { complexId },
           data: {
-            accessToken: credentials.access_token,
+            accessToken: encryptedAccessToken,
             expiryDate: new Date(credentials.expiry_date),
           },
         });
-        
+
         oauth2Client.setCredentials(credentials);
-        console.log(`[GoogleCalendar] Token renovado com sucesso para o complexo ${complexId}.`);
+
+        // LGPD: Log sem dados sensíveis
+        safeLogger.info(`[GoogleCalendar] Token renovado com sucesso.`, {
+          complexId: maskId(complexId)
+        });
       } catch (error) {
-        console.error(`[GoogleCalendar] Erro ao renovar o token para o complexo ${complexId}:`, error.message);
-        
-        // Se a renovação falhar (ex: refresh token revogado), marca o token como inválido
+        // LGPD: Não expor detalhes do erro que possam conter tokens
+        safeLogger.error(
+          `[GoogleCalendar] Erro ao renovar token. Usuário precisará autenticar novamente.`,
+          error,
+          { complexId: maskId(complexId) }
+        );
+
+        // Se a renovação falhar (ex: refresh token revogado), remove o token
         await prisma.googleCalendarToken.delete({
           where: { complexId },
         });
-        
-        console.warn(`[GoogleCalendar] Token removido. O usuário precisará se autenticar novamente.`);
+
         return null;
       }
     }
 
     return google.calendar({ version: 'v3', auth: oauth2Client });
   } catch (error) {
-    console.error(`[GoogleCalendar] Erro ao obter cliente autenticado para o complexo ${complexId}:`, error.message);
+    safeLogger.error(
+      `[GoogleCalendar] Erro ao obter cliente autenticado.`,
+      error,
+      { complexId: maskId(complexId) }
+    );
     return null;
   }
 }
 
 /**
  * Cria um evento no Google Calendar.
+ * LGPD: Logs não contêm PII do cliente
  * @param {string} complexId - O ID do complexo.
  * @param {object} reservation - O objeto de reserva do AgendaCerta.
  * @returns {Promise<string | null>} O ID do evento do Google Calendar ou null em caso de falha.
@@ -227,20 +308,29 @@ async function createCalendarEvent(complexId, reservation) {
       resource: event,
     });
 
-    console.log(`[GoogleCalendar] Evento criado com sucesso: ${response.data.id} para reserva ${reservation.id}`);
+    // LGPD: Log sem PII - usar apenas IDs mascarados
+    safeLogger.info(`[GoogleCalendar] Evento criado com sucesso`, {
+      eventId: maskId(response.data.id),
+      reservationId: maskId(reservation.id)
+    });
+
     return response.data.id;
-  }, `createCalendarEvent (reserva: ${reservation.id})`);
+  }, `createCalendarEvent (reserva: ${maskId(reservation.id)})`);
 }
 
 /**
  * Atualiza um evento no Google Calendar.
+ * LGPD: Logs não contêm PII do cliente
  * @param {string} complexId - O ID do complexo.
  * @param {object} reservation - O objeto de reserva do AgendaCerta.
  * @returns {Promise<boolean>} True se a atualização for bem-sucedida, false caso contrário.
  */
 async function updateCalendarEvent(complexId, reservation) {
   if (!reservation.googleCalendarEventId) {
-    console.warn(`[GoogleCalendar] Reserva ${reservation.id} não possui googleCalendarEventId. Pulando atualização.`);
+    // LGPD: Log com ID mascarado
+    safeLogger.warn(`[GoogleCalendar] Reserva não possui googleCalendarEventId. Pulando atualização.`, {
+      reservationId: maskId(reservation.id)
+    });
     return false;
   }
 
@@ -284,9 +374,14 @@ async function updateCalendarEvent(complexId, reservation) {
       resource: event,
     });
 
-    console.log(`[GoogleCalendar] Evento atualizado com sucesso: ${reservation.googleCalendarEventId} para reserva ${reservation.id}`);
+    // LGPD: Log sem PII
+    safeLogger.info(`[GoogleCalendar] Evento atualizado com sucesso`, {
+      eventId: maskId(reservation.googleCalendarEventId),
+      reservationId: maskId(reservation.id)
+    });
+
     return true;
-  }, `updateCalendarEvent (reserva: ${reservation.id}, evento: ${reservation.googleCalendarEventId})`);
+  }, `updateCalendarEvent (reserva: ${maskId(reservation.id)}, evento: ${maskId(reservation.googleCalendarEventId)})`);
 
   return result !== null;
 }
@@ -299,7 +394,7 @@ async function updateCalendarEvent(complexId, reservation) {
  */
 async function deleteCalendarEvent(complexId, googleCalendarEventId) {
   if (!googleCalendarEventId) {
-    console.warn('[GoogleCalendar] googleCalendarEventId não fornecido. Pulando exclusão.');
+    safeLogger.warn('[GoogleCalendar] googleCalendarEventId não fornecido. Pulando exclusão.');
     return false;
   }
 
@@ -314,15 +409,20 @@ async function deleteCalendarEvent(complexId, googleCalendarEventId) {
       eventId: googleCalendarEventId,
     });
 
-    console.log(`[GoogleCalendar] Evento excluído com sucesso: ${googleCalendarEventId}`);
+    // LGPD: Log com ID mascarado
+    safeLogger.info(`[GoogleCalendar] Evento excluído com sucesso`, {
+      eventId: maskId(googleCalendarEventId)
+    });
+
     return true;
-  }, `deleteCalendarEvent (evento: ${googleCalendarEventId})`);
+  }, `deleteCalendarEvent (evento: ${maskId(googleCalendarEventId)})`);
 
   return result !== null;
 }
 
 /**
  * Sincroniza um evento do Google Calendar para o AgendaCerta.
+ * LGPD: Não loga dados do evento que podem conter PII
  * @param {string} complexId - O ID do complexo.
  * @param {string} googleCalendarEventId - O ID do evento no Google Calendar.
  * @returns {Promise<void>}
@@ -350,7 +450,10 @@ async function syncEventFromGoogle(complexId, googleCalendarEventId) {
           where: { id: agendaCertaReservationId },
           data: { status: 'CANCELLED' },
         });
-        console.log(`[Sync] Reserva ${agendaCertaReservationId} cancelada devido à exclusão no Google Calendar.`);
+        // LGPD: Log com ID mascarado
+        safeLogger.info(`[Sync] Reserva cancelada devido à exclusão no Google Calendar.`, {
+          reservationId: maskId(agendaCertaReservationId)
+        });
       }
       return true;
     }
@@ -359,7 +462,7 @@ async function syncEventFromGoogle(complexId, googleCalendarEventId) {
     if (agendaCertaReservationId) {
       // Atualiza a reserva existente
       const updateData = {};
-      
+
       if (event.start?.dateTime) {
         updateData.startTime = new Date(event.start.dateTime);
       }
@@ -372,15 +475,21 @@ async function syncEventFromGoogle(complexId, googleCalendarEventId) {
           where: { id: agendaCertaReservationId },
           data: updateData,
         });
-        console.log(`[Sync] Reserva ${agendaCertaReservationId} atualizada pelo Google Calendar.`);
+        // LGPD: Log com ID mascarado
+        safeLogger.info(`[Sync] Reserva atualizada pelo Google Calendar.`, {
+          reservationId: maskId(agendaCertaReservationId)
+        });
       }
     } else {
       // Evento não originado no AgendaCerta - ignorar
-      console.log(`[Sync] Evento ${googleCalendarEventId} não originado no AgendaCerta. Ignorando criação.`);
+      // LGPD: Log com ID mascarado
+      safeLogger.info(`[Sync] Evento não originado no AgendaCerta. Ignorando criação.`, {
+        eventId: maskId(googleCalendarEventId)
+      });
     }
 
     return true;
-  }, `syncEventFromGoogle (evento: ${googleCalendarEventId})`);
+  }, `syncEventFromGoogle (evento: ${maskId(googleCalendarEventId)})`);
 }
 
 /**
@@ -391,7 +500,7 @@ async function syncEventFromGoogle(complexId, googleCalendarEventId) {
 async function checkIntegrationHealth(complexId) {
   try {
     const calendar = await getAuthenticatedCalendarClient(complexId);
-    
+
     if (!calendar) {
       return {
         status: 'disconnected',
@@ -409,15 +518,58 @@ async function checkIntegrationHealth(complexId) {
       authenticated: true,
     };
   } catch (error) {
+    // LGPD: Não expor detalhes técnicos do erro
     return {
       status: 'error',
-      message: error.message,
+      message: 'Erro na conexão com Google Calendar',
       authenticated: false,
       error: {
         code: error.code,
         status: error.response?.status,
       },
     };
+  }
+}
+
+/**
+ * Salva tokens OAuth de forma segura (criptografados)
+ * @param {string} complexId - ID do complexo
+ * @param {object} tokens - Tokens OAuth do Google
+ * @returns {Promise<void>}
+ */
+async function saveOAuthTokens(complexId, tokens) {
+  try {
+    // SEGURANÇA: Criptografar tokens antes de salvar
+    const encryptedAccessToken = getEncryptedToken(tokens.access_token);
+    const encryptedRefreshToken = getEncryptedToken(tokens.refresh_token);
+
+    await prisma.googleCalendarToken.upsert({
+      where: { complexId },
+      create: {
+        complexId,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiryDate: new Date(tokens.expiry_date),
+        tokenType: tokens.token_type || 'Bearer',
+        scope: tokens.scope || '',
+      },
+      update: {
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiryDate: new Date(tokens.expiry_date),
+        tokenType: tokens.token_type || 'Bearer',
+        scope: tokens.scope || '',
+      },
+    });
+
+    safeLogger.info('[GoogleCalendar] Tokens OAuth salvos com segurança (criptografados)', {
+      complexId: maskId(complexId)
+    });
+  } catch (error) {
+    safeLogger.error('[GoogleCalendar] Erro ao salvar tokens OAuth', error, {
+      complexId: maskId(complexId)
+    });
+    throw error;
   }
 }
 
@@ -428,4 +580,8 @@ module.exports = {
   getAuthenticatedCalendarClient,
   syncEventFromGoogle,
   checkIntegrationHealth,
+  saveOAuthTokens,
+  // Exportar utilitários de criptografia para uso em rotas
+  getEncryptedToken,
+  getDecryptedToken,
 };
