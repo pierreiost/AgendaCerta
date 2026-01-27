@@ -6,7 +6,9 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const rateLimit = require('express-rate-limit');
-const { PrismaClient } = require('@prisma/client');
+
+// Usar singleton do Prisma
+const prisma = require('./lib/prisma');
 
 const userRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
@@ -114,41 +116,10 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./routes/*.js'], // Caminho para os arquivos de rota
-};
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'AgendaCerta API',
-      version: '1.0.0',
-      description: 'Documentação da API do AgendaCerta, um sistema de agendamento e gestão de recursos.',
-    },
-    servers: [
-      {
-        url: '/api',
-        description: 'Servidor Principal',
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
-    },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
-  },
-  apis: ['./routes/*.js'], // Caminho para os arquivos de rota
+  apis: ['./routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-const prisma = new PrismaClient();
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -173,11 +144,11 @@ const allowedOrigins = [
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log(`❌ Origem bloqueada pelo CORS: ${origin}`);
+      console.log(`[CORS] Origem bloqueada: ${origin}`);
       callback(new Error('Origem não permitida pelo CORS'));
     }
   },
@@ -194,7 +165,7 @@ app.use(xss());
 app.use(hpp());
 
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000,
   max: 1000,
   message: {
     error: 'Muitas requisições deste IP. Tente novamente em 15 minutos.'
@@ -204,7 +175,7 @@ const generalLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
+  windowMs: 15 * 60 * 1000,
   max: 5,
   skipSuccessfulRequests: true,
   message: {
@@ -215,7 +186,7 @@ const authLimiter = rateLimit({
 });
 
 const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, 
+  windowMs: 60 * 60 * 1000,
   max: 20,
   message: {
     error: 'Muitas criações de recursos. Tente novamente em 1 hora.'
@@ -226,6 +197,7 @@ const createLimiter = rateLimit({
 
 app.use('/api/', generalLimiter);
 
+// Disponibilizar prisma para rotas via app.locals
 app.locals.prisma = prisma;
 
 app.use('/api/auth', authLimiter, authRoutes);
@@ -244,12 +216,26 @@ app.use('/api/google-calendar', googleCalendarRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    message: 'AgendaCerta API is running',
-    timestamp: new Date().toISOString()
-  });
+// Health check melhorado - verifica conexão com banco
+app.get('/api/health', async (req, res) => {
+  try {
+    // Verificar conexão com o banco de dados
+    await prisma.$queryRaw`SELECT 1`;
+
+    res.json({
+      status: 'healthy',
+      message: 'AgendaCerta API is running',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      message: 'AgendaCerta API has issues',
+      database: 'disconnected',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.use((req, res) => {
@@ -257,32 +243,32 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('❌ Erro:', err);
+  console.error('[ERROR]', err.message);
 
   if (err.message === 'Origem não permitida pelo CORS') {
-    return res.status(403).json({ 
-      error: 'Acesso negado - origem não permitida' 
+    return res.status(403).json({
+      error: 'Acesso negado - origem não permitida'
     });
   }
 
   if (err.code === 'P2002') {
-    return res.status(409).json({ 
-      error: 'Já existe um registro com estes dados únicos' 
+    return res.status(409).json({
+      error: 'Já existe um registro com estes dados únicos'
     });
   }
 
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ 
-      error: 'JSON inválido na requisição' 
+    return res.status(400).json({
+      error: 'JSON inválido na requisição'
     });
   }
 
   const statusCode = err.statusCode || 500;
-  const message = process.env.NODE_ENV === 'production' 
-    ? 'Erro interno do servidor' 
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Erro interno do servidor'
     : err.message;
 
-  res.status(statusCode).json({ 
+  res.status(statusCode).json({
     error: message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
@@ -291,36 +277,36 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, () => {
-  console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
-  console.log(`📅 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔒 Segurança ativada:`);
-  console.log(`   ✓ Helmet (Headers seguros)`);
-  console.log(`   ✓ CORS restritivo`);
-  console.log(`   ✓ Rate limiting`);
-  console.log(`   ✓ XSS Protection`);
-  console.log(`   ✓ Documentação da API (Swagger)`);
-  console.log(`   ✓ NoSQL Injection Protection`);
-  console.log(`   ✓ HPP Protection\n`);
+  console.log(`\n[SERVER] Rodando na porta ${PORT}`);
+  console.log(`[SERVER] Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`[SERVER] Segurança ativada:`);
+  console.log(`   - Helmet (Headers seguros)`);
+  console.log(`   - CORS restritivo`);
+  console.log(`   - Rate limiting`);
+  console.log(`   - XSS Protection`);
+  console.log(`   - Documentação da API (Swagger)`);
+  console.log(`   - NoSQL Injection Protection`);
+  console.log(`   - HPP Protection\n`);
 });
 
 const gracefulShutdown = async (signal) => {
-  console.log(`\n${signal} recebido. Encerrando servidor...`);
-  
+  console.log(`\n[SERVER] ${signal} recebido. Encerrando servidor...`);
+
   server.close(async () => {
-    console.log('Servidor HTTP encerrado');
-    
+    console.log('[SERVER] Servidor HTTP encerrado');
+
     try {
       await prisma.$disconnect();
-      console.log('Prisma desconectado');
+      console.log('[SERVER] Prisma desconectado');
       process.exit(0);
     } catch (error) {
-      console.error('Erro ao desconectar Prisma:', error);
+      console.error('[SERVER] Erro ao desconectar Prisma:', error);
       process.exit(1);
     }
   });
 
   setTimeout(() => {
-    console.error('Tempo esgotado. Forçando encerramento...');
+    console.error('[SERVER] Tempo esgotado. Forçando encerramento...');
     process.exit(1);
   }, 10000);
 };
@@ -329,12 +315,12 @@ process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection:', reason);
+  console.error('[SERVER] Unhandled Rejection:', reason);
   gracefulShutdown('unhandledRejection');
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  console.error('[SERVER] Uncaught Exception:', error);
   gracefulShutdown('uncaughtException');
 });
 
