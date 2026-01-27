@@ -1,24 +1,23 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const { authMiddleware } = require('../middleware/auth');
 const { checkPermission } = require('../middleware/permissions');
+const { validateIDOR } = require('../middleware/idorValidation');
 const { body, param, validationResult } = require('express-validator');
+
+// Usar singleton do Prisma
+const prisma = require('../lib/prisma');
 
 const router = express.Router();
 
 /**
- * @swagger
- * tags:
- *   name: Resources
- *   description: Gestão de Recursos (antigas Quadras)
+ * Middleware de validação
  */
-const prisma = new PrismaClient();
-
 const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
-      error: 'Dados inválidos',
+    return res.status(400).json({
+      error: errors.array()[0].msg,
+      code: 'VALIDATION_ERROR',
       details: errors.array().map(err => ({
         field: err.path || err.param,
         message: err.msg
@@ -29,42 +28,97 @@ const validate = (req, res, next) => {
 };
 
 /**
+ * Validadores para recursos
+ */
+const resourceValidators = {
+  create: [
+    body('name')
+      .trim()
+      .notEmpty().withMessage('Nome é obrigatório')
+      .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
+
+    body('resourceTypeId')
+      .isUUID().withMessage('Tipo de recurso inválido'),
+
+    body('pricePerHour')
+      .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
+
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 }).withMessage('Descrição muito longa (máximo 500 caracteres)'),
+
+    body('status')
+      .optional()
+      .isIn(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE']).withMessage('Status inválido'),
+
+    validate
+  ],
+
+  update: [
+    param('id')
+      .isUUID().withMessage('ID inválido'),
+
+    body('name')
+      .optional()
+      .trim()
+      .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
+
+    body('resourceTypeId')
+      .optional()
+      .isUUID().withMessage('Tipo de recurso inválido'),
+
+    body('pricePerHour')
+      .optional()
+      .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
+
+    body('description')
+      .optional()
+      .trim()
+      .isLength({ max: 500 }).withMessage('Descrição muito longa (máximo 500 caracteres)'),
+
+    body('status')
+      .optional()
+      .isIn(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE']).withMessage('Status inválido'),
+
+    validate
+  ]
+};
+
+/**
+ * @swagger
+ * tags:
+ *   name: Resources
+ *   description: Gestão de Recursos
+ */
+
+/**
  * @swagger
  * /resources:
  *   get:
  *     summary: Lista todos os recursos do complexo
  *     tags: [Resources]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Lista de recursos
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Resource'
- *       401:
- *         description: Não autorizado
  */
-// Listar recursos
-router.get('/', authMiddleware, checkPermission('resources', 'view'), async (req, res) => {
-  try {
-    const resources = await prisma.resource.findMany({
-      where: { complexId: req.user.complexId },
-      include: {
-        resourceType: true
-      },
-      orderBy: { name: 'asc' }
-    });
+router.get('/',
+  authMiddleware,
+  checkPermission('resources', 'view'),
+  async (req, res) => {
+    try {
+      const resources = await prisma.resource.findMany({
+        where: { complexId: req.user.complexId },
+        include: {
+          resourceType: true
+        },
+        orderBy: { name: 'asc' }
+      });
 
-    res.json(resources);
-  } catch (error) {
-    console.error('Erro ao listar recursos:', error);
-    res.status(500).json({ error: 'Erro ao listar recursos' });
+      res.json(resources);
+    } catch (error) {
+      console.error('[Resources] Erro ao listar recursos:', error.message);
+      res.status(500).json({ error: 'Erro ao listar recursos' });
+    }
   }
-});
+);
 
 /**
  * @swagger
@@ -72,34 +126,11 @@ router.get('/', authMiddleware, checkPermission('resources', 'view'), async (req
  *   get:
  *     summary: Busca um recurso pelo ID
  *     tags: [Resources]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: ID do recurso
- *     responses:
- *       200:
- *         description: Detalhes do recurso
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Resource'
- *       404:
- *         description: Recurso não encontrado
  */
-// Buscar recurso por ID
 router.get('/:id',
   authMiddleware,
   checkPermission('resources', 'view'),
-  [
-    param('id').isUUID().withMessage('ID inválido'),
-    validate
-  ],
+  validateIDOR('resource'),
   async (req, res) => {
     try {
       const resource = await prisma.resource.findFirst({
@@ -113,12 +144,12 @@ router.get('/:id',
       });
 
       if (!resource) {
-        return res.status(404).json({ error: 'Recurso não encontrada' });
+        return res.status(404).json({ error: 'Recurso não encontrado' });
       }
 
       res.json(resource);
     } catch (error) {
-      console.error('Erro ao buscar recurso:', error);
+      console.error('[Resources] Erro ao buscar recurso:', error.message);
       res.status(500).json({ error: 'Erro ao buscar recurso' });
     }
   }
@@ -130,73 +161,16 @@ router.get('/:id',
  *   post:
  *     summary: Cria um novo recurso
  *     tags: [Resources]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - resourceTypeId
- *               - pricePerHour
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nome do recurso
- *               resourceTypeId:
- *                 type: string
- *                 format: uuid
- *                 description: ID do tipo de recurso
- *               pricePerHour:
- *                 type: number
- *                 format: float
- *                 description: Preço por hora
- *               description:
- *                 type: string
- *                 description: Descrição do recurso
- *               status:
- *                 type: string
- *                 enum: [AVAILABLE, OCCUPIED, MAINTENANCE]
- *                 description: Status inicial do recurso
- *     responses:
- *       201:
- *         description: Recurso criado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Resource'
- *       400:
- *         description: Dados inválidos
  */
-// Criar recurso
 router.post('/',
   authMiddleware,
   checkPermission('resources', 'create'),
-  [
-    body('name')
-      .trim()
-      .notEmpty().withMessage('Nome é obrigatório')
-      .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
-    body('resourceTypeId')
-      .isUUID().withMessage('Tipo de recurso inválido'),
-    body('pricePerHour')
-      .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
-    body('description')
-      .optional()
-      .trim()
-      .isLength({ max: 500 }).withMessage('Descrição muito longa (máximo 500 caracteres)'),
-    body('status')
-      .optional()
-      .isIn(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE']).withMessage('Status inválido'),
-    validate
-  ],
+  resourceValidators.create,
   async (req, res) => {
     try {
       const { name, resourceTypeId, pricePerHour, description, status } = req.body;
 
+      // Validar que o tipo de recurso existe e pertence ao complexo
       const resourceType = await prisma.resourceType.findFirst({
         where: {
           id: resourceTypeId,
@@ -227,7 +201,7 @@ router.post('/',
 
       res.status(201).json(resource);
     } catch (error) {
-      console.error('Erro ao criar recurso:', error);
+      console.error('[Resources] Erro ao criar recurso:', error.message);
       res.status(500).json({ error: 'Erro ao criar recurso' });
     }
   }
@@ -239,78 +213,12 @@ router.post('/',
  *   put:
  *     summary: Atualiza um recurso existente
  *     tags: [Resources]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: ID do recurso a ser atualizado
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 description: Nome do recurso
- *               resourceTypeId:
- *                 type: string
- *                 format: uuid
- *                 description: ID do tipo de recurso
- *               pricePerHour:
- *                 type: number
- *                 format: float
- *                 description: Preço por hora
- *               description:
- *                 type: string
- *                 description: Descrição do recurso
- *               status:
- *                 type: string
- *                 enum: [AVAILABLE, OCCUPIED, MAINTENANCE]
- *                 description: Status do recurso
- *     responses:
- *       200:
- *         description: Recurso atualizado com sucesso
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Resource'
- *       400:
- *         description: Dados inválidos
- *       404:
- *         description: Recurso não encontrado
  */
-// Atualizar recurso
 router.put('/:id',
   authMiddleware,
-  checkPermission('resources', 'edit')t'),
-  [
-    param('id').isUUID().withMessage('ID inválido'),
-    body('name')
-      .optional()
-      .trim()
-      .isLength({ min: 3, max: 100 }).withMessage('Nome deve ter entre 3 e 100 caracteres'),
-    body('resourceTypeId')
-      .optional()
-      .isUUID().withMessage('Tipo de recurso inválido'),
-    body('pricePerHour')
-      .optional()
-      .isFloat({ min: 0 }).withMessage('Preço deve ser um valor positivo'),
-    body('description')
-      .optional()
-      .trim()
-      .isLength({ max: 500 }).withMessage('Descrição muito longa (máximo 500 caracteres)'),
-    body('status')
-      .optional()
-      .isIn(['AVAILABLE', 'OCCUPIED', 'MAINTENANCE']).withMessage('Status inválido'),
-    validate
-  ],
+  checkPermission('resources', 'edit'),
+  validateIDOR('resource'),
+  resourceValidators.update,
   async (req, res) => {
     try {
       const { name, resourceTypeId, pricePerHour, description, status } = req.body;
@@ -323,9 +231,10 @@ router.put('/:id',
       });
 
       if (!resource) {
-        return res.status(404).json({ error: 'Recurso não encontrada' });
+        return res.status(404).json({ error: 'Recurso não encontrado' });
       }
 
+      // Validar tipo de recurso se estiver sendo atualizado
       if (resourceTypeId) {
         const resourceType = await prisma.resourceType.findFirst({
           where: {
@@ -347,7 +256,7 @@ router.put('/:id',
         data: {
           ...(name && { name: name.trim() }),
           ...(resourceTypeId && { resourceTypeId }),
-          ...(pricePerHour && { pricePerHour: parseFloat(pricePerHour) }),
+          ...(pricePerHour !== undefined && { pricePerHour: parseFloat(pricePerHour) }),
           ...(description !== undefined && { description: description?.trim() || null }),
           ...(status && { status })
         },
@@ -358,7 +267,7 @@ router.put('/:id',
 
       res.json(updatedResource);
     } catch (error) {
-      console.error('Erro ao atualizar recurso:', error);
+      console.error('[Resources] Erro ao atualizar recurso:', error.message);
       res.status(500).json({ error: 'Erro ao atualizar recurso' });
     }
   }
@@ -370,32 +279,11 @@ router.put('/:id',
  *   delete:
  *     summary: Deleta um recurso
  *     tags: [Resources]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *           format: uuid
- *         required: true
- *         description: ID do recurso a ser deletado
- *     responses:
- *       200:
- *         description: Recurso deletado com sucesso
- *       404:
- *         description: Recurso não encontrado
- *       409:
- *         description: Conflito (reservas ativas)
  */
-// Deletar recurso
 router.delete('/:id',
   authMiddleware,
-  ccheckPermission('resources', 'delete')'),
-  [
-    param('id').isUUID().withMessage('ID inválido'),
-    validate
-  ],
+  checkPermission('resources', 'delete'),
+  validateIDOR('resource'),
   async (req, res) => {
     try {
       const resource = await prisma.resource.findFirst({
@@ -406,7 +294,7 @@ router.delete('/:id',
       });
 
       if (!resource) {
-        return res.status(404).json({ error: 'Recurso não encontrada' });
+        return res.status(404).json({ error: 'Recurso não encontrado' });
       }
 
       const now = new Date();
@@ -421,15 +309,16 @@ router.delete('/:id',
       });
 
       if (activeReservations > 0) {
-        return res.status(409).json({ 
+        return res.status(409).json({
           error: 'Não é possível deletar recurso com reservas futuras ativas',
-          activeReservations: activeReservations
+          code: 'ACTIVE_RESERVATIONS',
+          activeReservations
         });
       }
 
       // Usa transação para deletar tudo na ordem correta
       await prisma.$transaction(async (tx) => {
-        // 1. Busca todas as reservas da recurso
+        // 1. Busca todas as reservas do recurso
         const reservations = await tx.reservation.findMany({
           where: { resourceId: req.params.id },
           select: { id: true }
@@ -451,10 +340,8 @@ router.delete('/:id',
             await tx.tabItem.deleteMany({
               where: { tabId: { in: tabIds } }
             });
-          }
 
-          // 4. Deleta as comandas
-          if (tabIds.length > 0) {
+            // 4. Deleta as comandas
             await tx.tab.deleteMany({
               where: { id: { in: tabIds } }
             });
@@ -466,15 +353,15 @@ router.delete('/:id',
           });
         }
 
-        // 6. Finalmente deleta a recurso
+        // 6. Finalmente deleta o recurso
         await tx.resource.delete({
           where: { id: req.params.id }
         });
       });
 
-      res.json({ message: 'Recurso deletada com sucesso' });
+      res.json({ message: 'Recurso deletado com sucesso' });
     } catch (error) {
-      console.error('Erro ao deletar recurso:', error);
+      console.error('[Resources] Erro ao deletar recurso:', error.message);
       res.status(500).json({ error: 'Erro ao deletar recurso' });
     }
   }

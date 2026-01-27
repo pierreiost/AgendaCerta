@@ -1,10 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { VenueProvider } from './contexts/VenueContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Courts from './pages/Courts';
+import Resources from './pages/Resources';
 import Clients from './pages/Clients';
 import Reservations from './pages/Reservations';
 import Products from './pages/Products';
@@ -64,6 +65,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <VenueProvider>
         <Routes>
           {/* Rotas Públicas */}
           <Route
@@ -104,7 +106,7 @@ function App() {
             path="/courts"
             element={
               <SystemRoute>
-                <Courts />
+                <Resources />
               </SystemRoute>
             }
           />
@@ -112,7 +114,23 @@ function App() {
             path="/courts/:id"
             element={
               <SystemRoute>
-                <Courts />
+                <Resources />
+              </SystemRoute>
+            }
+          />
+          <Route
+            path="/resources"
+            element={
+              <SystemRoute>
+                <Resources />
+              </SystemRoute>
+            }
+          />
+          <Route
+            path="/resources/:id"
+            element={
+              <SystemRoute>
+                <Resources />
               </SystemRoute>
             }
           />
@@ -195,6 +213,7 @@ function App() {
           <Route path="/" element={<RedirectByRole />} />
           <Route path="*" element={<RedirectByRole />} />
         </Routes>
+        </VenueProvider>
       </AuthProvider>
     </BrowserRouter>
   );
