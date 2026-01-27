@@ -1,9 +1,139 @@
 // frontend/src/hooks/useBookings.js
-// Hook para gerenciamento de Reservas com valida\u00e7\u00e3o de conflitos autom\u00e1tica
+// Hook para gerenciamento de Reservas com validação de conflitos automática
+// Inclui tratamento melhorado de erros RLS/IDOR e integração com VenueContext
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+
+/**
+ * Códigos de erro específicos para violações de segurança
+ */
+export const ERROR_CODES = {
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  RLS_VIOLATION: 'RLS_VIOLATION',
+  IDOR_ACCESS_DENIED: 'IDOR_ACCESS_DENIED',
+  VENUE_NOT_FOUND: 'VENUE_NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  VALIDATION: 'VALIDATION',
+  NETWORK: 'NETWORK',
+  UNKNOWN: 'UNKNOWN',
+};
+
+/**
+ * Analisa um erro e retorna informações estruturadas
+ * Distingue entre "Sessão Expirada" e "Violação de RLS"
+ * @param {Error} error - Erro a ser analisado
+ * @returns {Object} Informações estruturadas do erro
+ */
+const analyzeError = (error) => {
+  const status = error.response?.status;
+  const errorCode = error.response?.data?.code;
+  const errorMessage = error.response?.data?.error || error.message;
+
+  // Erro de rede
+  if (!error.response) {
+    return {
+      code: ERROR_CODES.NETWORK,
+      message: 'Erro de conexão. Verifique sua internet e tente novamente.',
+      action: 'retry',
+      shouldRefreshVenue: false,
+      originalError: error,
+    };
+  }
+
+  // Sessão expirada (401 Unauthorized)
+  if (status === 401) {
+    return {
+      code: ERROR_CODES.SESSION_EXPIRED,
+      message: 'Sua sessão expirou. Por favor, faça login novamente.',
+      action: 'logout',
+      shouldRefreshVenue: false,
+      originalError: error,
+    };
+  }
+
+  // Violação de RLS ou IDOR (403 Forbidden)
+  if (status === 403) {
+    // Verificar se é especificamente IDOR
+    if (errorCode === 'IDOR_ACCESS_DENIED' || errorCode === 'IDOR_BATCH_ACCESS_DENIED' ||
+        errorCode === 'IDOR_NO_COMPLEX') {
+      return {
+        code: ERROR_CODES.IDOR_ACCESS_DENIED,
+        message: 'Acesso negado: este recurso não pertence ao seu estabelecimento.',
+        action: 'refreshVenue',
+        shouldRefreshVenue: true,
+        originalError: error,
+      };
+    }
+
+    // Verificar se é violação de RLS
+    if (errorMessage.toLowerCase().includes('rls') ||
+        errorMessage.toLowerCase().includes('policy') ||
+        errorMessage.toLowerCase().includes('não pertence') ||
+        errorMessage.toLowerCase().includes('access denied') ||
+        errorMessage.toLowerCase().includes('acesso negado')) {
+      return {
+        code: ERROR_CODES.RLS_VIOLATION,
+        message: 'Você pode ter perdido acesso a este estabelecimento. Atualizando contexto...',
+        action: 'refreshVenue',
+        shouldRefreshVenue: true,
+        originalError: error,
+      };
+    }
+
+    // Outro erro de permissão
+    return {
+      code: ERROR_CODES.RLS_VIOLATION,
+      message: errorMessage || 'Você não tem permissão para realizar esta ação.',
+      action: 'refreshVenue',
+      shouldRefreshVenue: true,
+      originalError: error,
+    };
+  }
+
+  // Recurso não encontrado (404)
+  if (status === 404) {
+    return {
+      code: ERROR_CODES.VENUE_NOT_FOUND,
+      message: errorMessage || 'Recurso não encontrado.',
+      action: 'none',
+      shouldRefreshVenue: false,
+      originalError: error,
+    };
+  }
+
+  // Conflito (409)
+  if (status === 409) {
+    return {
+      code: ERROR_CODES.CONFLICT,
+      message: errorMessage || 'Conflito de horário detectado.',
+      action: 'none',
+      shouldRefreshVenue: false,
+      originalError: error,
+    };
+  }
+
+  // Erro de validação (400)
+  if (status === 400) {
+    return {
+      code: ERROR_CODES.VALIDATION,
+      message: errorMessage || 'Dados inválidos. Verifique os campos e tente novamente.',
+      action: 'none',
+      shouldRefreshVenue: false,
+      originalError: error,
+    };
+  }
+
+  // Erro genérico
+  return {
+    code: ERROR_CODES.UNKNOWN,
+    message: errorMessage || 'Ocorreu um erro inesperado. Tente novamente.',
+    action: 'none',
+    shouldRefreshVenue: false,
+    originalError: error,
+  };
+};
 
 /**
  * Valida email
@@ -17,7 +147,7 @@ const validateEmail = (email) => {
   if (!emailRegex.test(email)) {
     return {
       valid: false,
-      message: 'Email inv\u00e1lido. Use o formato: exemplo@dominio.com'
+      message: 'Email inválido. Use o formato: exemplo@dominio.com'
     };
   }
 
@@ -26,9 +156,9 @@ const validateEmail = (email) => {
 
 /**
  * Calcula horas entre duas datas (arredonda para cima)
- * @param {Date} start - Data de in\u00edcio
+ * @param {Date} start - Data de início
  * @param {Date} end - Data de fim
- * @returns {number} - N\u00famero de horas (arredondado para cima)
+ * @returns {number} - Número de horas (arredondado para cima)
  */
 const calculateHours = (start, end) => {
   const milliseconds = end.getTime() - start.getTime();
@@ -37,15 +167,69 @@ const calculateHours = (start, end) => {
 
 /**
  * Hook personalizado para gerenciar Reservas
+ * Inclui tratamento melhorado de erros RLS/IDOR
  */
 export const useBookings = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorInfo, setErrorInfo] = useState(null); // Informações detalhadas do erro
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Ref para evitar recargas desnecessárias durante refresh de venue
+  const isRefreshingVenue = useRef(false);
+
+  /**
+   * Trata erros de autenticação/autorização
+   * Executa ação apropriada baseada no tipo de erro
+   */
+  const handleAuthError = useCallback(async (error) => {
+    const analyzed = analyzeError(error);
+
+    // Atualizar estado de erro com informações detalhadas
+    setErrorInfo(analyzed);
+    setError(analyzed.message);
+
+    // Executar ação baseada no tipo de erro
+    switch (analyzed.action) {
+      case 'logout':
+        console.warn('[useBookings] Sessão expirada - redirecionando para login');
+        // Pequeno delay para mostrar mensagem antes de redirecionar
+        setTimeout(() => {
+          logout();
+        }, 1500);
+        break;
+
+      case 'refreshVenue':
+        console.warn('[useBookings] Violação de RLS/IDOR detectada - atualizando contexto');
+        if (!isRefreshingVenue.current) {
+          isRefreshingVenue.current = true;
+          try {
+            // Limpar localStorage do venue potencialmente inválido
+            localStorage.removeItem('currentVenueId');
+
+            // Recarregar dados para verificar acesso
+            await loadBookings();
+          } finally {
+            isRefreshingVenue.current = false;
+          }
+        }
+        break;
+
+      case 'retry':
+        console.warn('[useBookings] Erro de rede - sugerindo retry');
+        break;
+
+      default:
+        // Nenhuma ação especial necessária
+        break;
+    }
+
+    return analyzed;
+  }, [logout]);
 
   /**
    * Carrega reservas do backend
@@ -54,17 +238,26 @@ export const useBookings = () => {
     try {
       setLoading(true);
       setError(null);
+      setErrorInfo(null);
 
       const response = await api.get('/reservations', { params });
-      setBookings(response.data || []);
+      setBookings(response.data?.data || response.data || []);
     } catch (err) {
       console.error('Erro ao buscar reservas:', err);
-      setError(err.response?.data?.error || 'Erro ao carregar reservas');
-      setBookings([]);
+
+      // Usar o handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      // Se for erro de sessão ou RLS, não definir bookings vazio
+      // pois pode ser temporário
+      if (analyzed.code !== ERROR_CODES.SESSION_EXPIRED &&
+          analyzed.code !== ERROR_CODES.RLS_VIOLATION) {
+        setBookings([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleAuthError]);
 
   useEffect(() => {
     if (user) {
@@ -73,11 +266,11 @@ export const useBookings = () => {
   }, [user, loadBookings]);
 
   /**
-   * Verifica conflitos de hor\u00e1rio para um recurso
+   * Verifica conflitos de horário para um recurso
    * @param {string} resourceId - ID do recurso
-   * @param {Date} startTime - Hor\u00e1rio de in\u00edcio
-   * @param {Date} endTime - Hor\u00e1rio de fim
-   * @param {string} excludeBookingId - ID da reserva a excluir da verifica\u00e7\u00e3o (para updates)
+   * @param {Date} startTime - Horário de início
+   * @param {Date} endTime - Horário de fim
+   * @param {string} excludeBookingId - ID da reserva a excluir da verificação (para updates)
    * @returns {Promise<{ hasConflict: boolean, conflictingBooking?: Object }>}
    */
   const checkConflict = async (resourceId, startTime, endTime, excludeBookingId = null) => {
@@ -107,7 +300,7 @@ export const useBookings = () => {
         const bookingStart = new Date(booking.startTime);
         const bookingEnd = new Date(booking.endTime);
 
-        // Verifica sobreposi\u00e7\u00e3o de hor\u00e1rios
+        // Verifica sobreposição de horários
         return (startTime < bookingEnd && endTime > bookingStart);
       });
 
@@ -124,31 +317,31 @@ export const useBookings = () => {
   };
 
   /**
-   * Cria uma nova reserva com valida\u00e7\u00e3o de conflitos
+   * Cria uma nova reserva com validação de conflitos
    * @param {Object} bookingData - Dados da reserva
    * @returns {Promise<Object>} - Reserva criada
    */
   const createBooking = async (bookingData) => {
     // Prevenir double submit
     if (isCreating) {
-      throw new Error('Aguarde, j\u00e1 existe uma cria\u00e7\u00e3o em andamento.');
+      throw new Error('Aguarde, já existe uma criação em andamento.');
     }
 
     // ========================================
-    // VALIDA\u00c7\u00d5ES COMPLETAS
+    // VALIDAÇÕES COMPLETAS
     // ========================================
 
-    // 1. Valida\u00e7\u00e3o de campos obrigat\u00f3rios
+    // 1. Validação de campos obrigatórios
     if (!bookingData.resourceId) {
-      throw new Error('Recurso \u00e9 obrigat\u00f3rio');
+      throw new Error('Recurso é obrigatório');
     }
 
     if (!bookingData.startTime) {
-      throw new Error('Hor\u00e1rio de in\u00edcio \u00e9 obrigat\u00f3rio');
+      throw new Error('Horário de início é obrigatório');
     }
 
     if (!bookingData.clientId && !bookingData.customerName?.trim()) {
-      throw new Error('Cliente ou nome do cliente \u00e9 obrigat\u00f3rio');
+      throw new Error('Cliente ou nome do cliente é obrigatório');
     }
 
     // 2. Validar email se fornecido
@@ -165,21 +358,21 @@ export const useBookings = () => {
     const endDate = new Date(startDate.getTime() + (duration * 60 * 60 * 1000));
 
     if (isNaN(startDate.getTime())) {
-      throw new Error('Data de in\u00edcio inv\u00e1lida. Verifique o hor\u00e1rio informado.');
+      throw new Error('Data de início inválida. Verifique o horário informado.');
     }
 
     // 4. Validar que end > start
     if (endDate <= startDate) {
-      throw new Error('O hor\u00e1rio de t\u00e9rmino deve ser posterior ao hor\u00e1rio de in\u00edcio');
+      throw new Error('O horário de término deve ser posterior ao horário de início');
     }
 
-    // 5. Validar que n\u00e3o \u00e9 no passado
+    // 5. Validar que não é no passado
     const now = new Date();
     if (startDate < now) {
-      throw new Error('N\u00e3o \u00e9 poss\u00edvel criar reserva com hor\u00e1rio no passado');
+      throw new Error('Não é possível criar reserva com horário no passado');
     }
 
-    // 6. Verificar conflitos (AUTOM\u00c1TICO)
+    // 6. Verificar conflitos (AUTOMÁTICO)
     const { hasConflict, conflictingBooking } = await checkConflict(
       bookingData.resourceId,
       startDate,
@@ -190,7 +383,7 @@ export const useBookings = () => {
       const conflictInfo = conflictingBooking
         ? ` (conflito com reserva de ${conflictingBooking.client?.fullName || 'outro cliente'})`
         : '';
-      throw new Error(`J\u00e1 existe uma reserva para este recurso neste hor\u00e1rio${conflictInfo}. Por favor, escolha outro hor\u00e1rio ou recurso.`);
+      throw new Error(`Já existe uma reserva para este recurso neste horário${conflictInfo}. Por favor, escolha outro horário ou recurso.`);
     }
 
     // 7. Calcular valores
@@ -200,9 +393,11 @@ export const useBookings = () => {
     const itemsTotal = bookingData.itemsTotal || 0;
     const grandTotal = spaceTotal + itemsTotal;
 
-    console.log(`\uD83D\uDCCA C\u00e1lculo de reserva: ${hours}h \u00d7 R$ ${pricePerHour} = R$ ${spaceTotal}`);
+    console.log(`📊 Cálculo de reserva: ${hours}h × R$ ${pricePerHour} = R$ ${spaceTotal}`);
 
     setIsCreating(true);
+    setError(null);
+    setErrorInfo(null);
 
     try {
       const preparedData = {
@@ -224,6 +419,17 @@ export const useBookings = () => {
       return response.data;
     } catch (err) {
       console.error('Erro ao criar reserva:', err);
+
+      // Usar handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      // Se não for erro de segurança, lançar erro normal
+      if (analyzed.code === ERROR_CODES.SESSION_EXPIRED ||
+          analyzed.code === ERROR_CODES.RLS_VIOLATION ||
+          analyzed.code === ERROR_CODES.IDOR_ACCESS_DENIED) {
+        throw new Error(analyzed.message);
+      }
+
       throw new Error(err.response?.data?.error || 'Ocorreu um erro ao criar a reserva. Por favor, tente novamente.');
     } finally {
       setIsCreating(false);
@@ -239,15 +445,15 @@ export const useBookings = () => {
   const updateBooking = async (id, updates) => {
     // Prevenir double submit
     if (isUpdating) {
-      throw new Error('Aguarde, j\u00e1 existe uma atualiza\u00e7\u00e3o em andamento.');
+      throw new Error('Aguarde, já existe uma atualização em andamento.');
     }
 
     if (!id) {
-      throw new Error('ID da reserva \u00e9 obrigat\u00f3rio para atualiza\u00e7\u00e3o');
+      throw new Error('ID da reserva é obrigatório para atualização');
     }
 
     // ========================================
-    // VALIDA\u00c7\u00d5ES DE CAMPOS (se estiverem sendo atualizados)
+    // VALIDAÇÕES DE CAMPOS (se estiverem sendo atualizados)
     // ========================================
 
     if (updates.customerEmail) {
@@ -257,12 +463,12 @@ export const useBookings = () => {
       }
     }
 
-    // Verificar conflitos se hor\u00e1rios ou recurso mudaram
+    // Verificar conflitos se horários ou recurso mudaram
     if (updates.resourceId || updates.startTime || updates.durationInHours) {
       // Buscar reserva atual
       const currentBooking = bookings.find(b => b.id === id);
       if (!currentBooking) {
-        throw new Error('Reserva n\u00e3o encontrada');
+        throw new Error('Reserva não encontrada');
       }
 
       const resourceId = updates.resourceId || currentBooking.resourceId;
@@ -272,19 +478,19 @@ export const useBookings = () => {
 
       // Validar que end > start
       if (endTime <= startTime) {
-        throw new Error('O hor\u00e1rio de t\u00e9rmino deve ser posterior ao hor\u00e1rio de in\u00edcio');
+        throw new Error('O horário de término deve ser posterior ao horário de início');
       }
 
-      // Verificar conflitos (excluindo a pr\u00f3pria reserva)
+      // Verificar conflitos (excluindo a própria reserva)
       const { hasConflict } = await checkConflict(
         resourceId,
         startTime,
         endTime,
-        id // Excluir a pr\u00f3pria reserva da verifica\u00e7\u00e3o
+        id // Excluir a própria reserva da verificação
       );
 
       if (hasConflict) {
-        throw new Error('J\u00e1 existe outra reserva neste hor\u00e1rio');
+        throw new Error('Já existe outra reserva neste horário');
       }
 
       // Recalcular valores
@@ -296,6 +502,8 @@ export const useBookings = () => {
     }
 
     setIsUpdating(true);
+    setError(null);
+    setErrorInfo(null);
 
     try {
       const response = await api.put(`/reservations/${id}`, updates);
@@ -308,7 +516,11 @@ export const useBookings = () => {
       return response.data;
     } catch (err) {
       console.error('Erro ao atualizar reserva:', err);
-      throw new Error(err.response?.data?.error || 'N\u00e3o foi poss\u00edvel atualizar a reserva. Tente novamente.');
+
+      // Usar handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      throw new Error(analyzed.message || 'Não foi possível atualizar a reserva. Tente novamente.');
     } finally {
       setIsUpdating(false);
     }
@@ -321,14 +533,16 @@ export const useBookings = () => {
   const cancelBooking = async (id) => {
     // Prevenir double submit
     if (isDeleting) {
-      throw new Error('Aguarde, j\u00e1 existe um cancelamento em andamento.');
+      throw new Error('Aguarde, já existe um cancelamento em andamento.');
     }
 
     if (!id) {
-      throw new Error('ID da reserva \u00e9 obrigat\u00f3rio para cancelamento');
+      throw new Error('ID da reserva é obrigatório para cancelamento');
     }
 
     setIsDeleting(true);
+    setError(null);
+    setErrorInfo(null);
 
     try {
       await api.delete(`/reservations/${id}`);
@@ -340,19 +554,22 @@ export const useBookings = () => {
     } catch (err) {
       console.error('Erro ao cancelar reserva:', err);
 
-      // Tratar erro espec\u00edfico de comanda aberta
+      // Tratar erro específico de comanda aberta
       if (err.response?.data?.error?.includes('comanda aberta')) {
         throw new Error('Esta reserva possui uma comanda aberta. Feche a comanda antes de cancelar.');
       }
 
-      throw new Error(err.response?.data?.error || 'N\u00e3o foi poss\u00edvel cancelar a reserva. Tente novamente.');
+      // Usar handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      throw new Error(analyzed.message || 'Não foi possível cancelar a reserva. Tente novamente.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   /**
-   * Cancela m\u00faltiplas reservas
+   * Cancela múltiplas reservas
    * @param {Array<string>} ids - IDs das reservas
    */
   const cancelMultipleBookings = async (ids) => {
@@ -361,6 +578,8 @@ export const useBookings = () => {
     }
 
     setIsDeleting(true);
+    setError(null);
+    setErrorInfo(null);
 
     try {
       await api.post('/reservations/cancel-multiple', { reservationIds: ids });
@@ -371,7 +590,11 @@ export const useBookings = () => {
       ));
     } catch (err) {
       console.error('Erro ao cancelar reservas:', err);
-      throw new Error(err.response?.data?.error || 'N\u00e3o foi poss\u00edvel cancelar as reservas. Tente novamente.');
+
+      // Usar handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      throw new Error(analyzed.message || 'Não foi possível cancelar as reservas. Tente novamente.');
     } finally {
       setIsDeleting(false);
     }
@@ -383,10 +606,12 @@ export const useBookings = () => {
    */
   const cancelRecurringGroup = async (groupId) => {
     if (!groupId) {
-      throw new Error('ID do grupo \u00e9 obrigat\u00f3rio');
+      throw new Error('ID do grupo é obrigatório');
     }
 
     setIsDeleting(true);
+    setError(null);
+    setErrorInfo(null);
 
     try {
       await api.delete(`/reservations/recurring-group/${groupId}`);
@@ -395,14 +620,18 @@ export const useBookings = () => {
       await loadBookings();
     } catch (err) {
       console.error('Erro ao cancelar grupo de reservas:', err);
-      throw new Error(err.response?.data?.error || 'N\u00e3o foi poss\u00edvel cancelar o grupo de reservas.');
+
+      // Usar handler de erro aprimorado
+      const analyzed = await handleAuthError(err);
+
+      throw new Error(analyzed.message || 'Não foi possível cancelar o grupo de reservas.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   /**
-   * Busca reservas de um recurso espec\u00edfico em uma data
+   * Busca reservas de um recurso específico em uma data
    * @param {string} resourceId - ID do recurso
    * @param {string} date - Data no formato YYYY-MM-DD
    * @returns {Array} - Lista de reservas
@@ -418,11 +647,11 @@ export const useBookings = () => {
   };
 
   /**
-   * Verifica disponibilidade de um hor\u00e1rio
+   * Verifica disponibilidade de um horário
    * @param {string} resourceId - ID do recurso
-   * @param {Date} startTime - Hor\u00e1rio de in\u00edcio
-   * @param {number} durationInHours - Dura\u00e7\u00e3o em horas
-   * @returns {boolean} - true se dispon\u00edvel
+   * @param {Date} startTime - Horário de início
+   * @param {number} durationInHours - Duração em horas
+   * @returns {boolean} - true se disponível
    */
   const isSlotAvailable = async (resourceId, startTime, durationInHours) => {
     const endTime = new Date(startTime.getTime() + (durationInHours * 60 * 60 * 1000));
@@ -430,13 +659,22 @@ export const useBookings = () => {
     return !hasConflict;
   };
 
+  /**
+   * Limpa o estado de erro
+   */
+  const clearError = () => {
+    setError(null);
+    setErrorInfo(null);
+  };
+
   return {
     // Dados
     bookings,
     isLoading: loading,
     error,
+    errorInfo, // Informações detalhadas do erro para UI mais inteligente
 
-    // A\u00e7\u00f5es
+    // Ações
     createBooking,
     isCreating,
     updateBooking,
@@ -446,12 +684,17 @@ export const useBookings = () => {
     cancelMultipleBookings,
     cancelRecurringGroup,
 
-    // Utilit\u00e1rios
+    // Utilitários
     refetch: loadBookings,
     checkConflict,
     getBookingsByResourceAndDate,
     isSlotAvailable,
     calculateHours,
+    clearError,
+    handleAuthError, // Expor para uso externo se necessário
+
+    // Constantes
+    ERROR_CODES,
   };
 };
 
