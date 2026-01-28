@@ -8,7 +8,8 @@ const { body, validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
 const prisma = require('../lib/prisma');
-const { authMiddleware, checkPermission } = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
+const { checkPermission } = require('../middleware/permissions');
 
 const router = express.Router();
 
