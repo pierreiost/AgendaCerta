@@ -57,19 +57,22 @@ model UserPermission {
 }
 
 model Complex {
-  id          String      @id @default(uuid())
-  name        String      // ✅ SEM @unique
-  cnpj        String      @unique
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
+  id            String      @id @default(uuid())
+  name          String      // ✅ SEM @unique
+  cnpj          String      @unique
+  primaryColor  String?     @map("primary_color")    // Cor primária (ex: #10b981)
+  accentColor   String?     @map("accent_color")     // Cor de destaque (ex: #3b82f6)
+  logoUrl       String?     @map("logo_url")         // URL do logo no Supabase Storage
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
   users       User[]
   resources      Resource[]
   clients     Client[]
   products    Product[]
   resourceTypes  ResourceType[]
   googleCalendarToken GoogleCalendarToken?
-  
+
   @@map("complexes")
 }
 

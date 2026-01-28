@@ -1,6 +1,7 @@
 /**
  * VenueContext - Contexto para gerenciamento de estabelecimentos (multi-tenant)
  * Garante que o complexId no localStorage seja sempre validado contra o banco
+ * Inclui suporte para Identidade Visual dinâmica (cores e logo)
  */
 
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
@@ -8,6 +9,14 @@ import { useAuth } from './AuthContext';
 import api from '../services/api';
 
 const VenueContext = createContext({});
+
+/**
+ * Cores padrão do sistema
+ */
+const DEFAULT_COLORS = {
+  primary: '#10b981',
+  accent: '#3b82f6',
+};
 
 /**
  * Códigos de erro específicos para violações de RLS/IDOR
@@ -23,6 +32,81 @@ export const ERROR_CODES = {
 /**
  * Provider do contexto de Venue
  */
+/**
+ * Converte cor hexadecimal para HSL
+ * @param {string} hex - Cor em formato hex (#RRGGBB)
+ * @returns {object} - Objeto com h, s, l
+ */
+const hexToHSL = (hex) => {
+  // Remove o # se presente
+  hex = hex.replace(/^#/, '');
+
+  // Converte para RGB
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+      default: h = 0;
+    }
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+};
+
+/**
+ * Aplica as cores da venue nas variáveis CSS globais
+ * @param {string} primaryColor - Cor primária em hex
+ * @param {string} accentColor - Cor de destaque em hex
+ */
+const applyThemeColors = (primaryColor, accentColor) => {
+  const root = document.documentElement;
+
+  // Aplicar cor primária
+  if (primaryColor) {
+    const primaryHSL = hexToHSL(primaryColor);
+    root.style.setProperty('--primary-color', primaryColor);
+    root.style.setProperty('--primary-h', primaryHSL.h);
+    root.style.setProperty('--primary-s', `${primaryHSL.s}%`);
+    root.style.setProperty('--primary-l', `${primaryHSL.l}%`);
+    root.style.setProperty('--ring', primaryColor);
+    root.style.setProperty('--success-color', primaryColor);
+  }
+
+  // Aplicar cor de destaque (secondary)
+  if (accentColor) {
+    const accentHSL = hexToHSL(accentColor);
+    root.style.setProperty('--secondary-color', accentColor);
+    root.style.setProperty('--accent-h', accentHSL.h);
+    root.style.setProperty('--accent-s', `${accentHSL.s}%`);
+    root.style.setProperty('--accent-l', `${accentHSL.l}%`);
+  }
+};
+
+/**
+ * Reseta as cores para os valores padrão
+ */
+const resetThemeColors = () => {
+  applyThemeColors(DEFAULT_COLORS.primary, DEFAULT_COLORS.accent);
+};
+
 export const VenueProvider = ({ children }) => {
   const { user, logout } = useAuth();
   const [currentVenue, setCurrentVenue] = useState(null);
@@ -30,12 +114,20 @@ export const VenueProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Estado para identidade visual
+  const [visualIdentity, setVisualIdentity] = useState({
+    primaryColor: DEFAULT_COLORS.primary,
+    accentColor: DEFAULT_COLORS.accent,
+    logoUrl: null,
+  });
+
   /**
    * Carrega o estabelecimento atual do usuário
    */
   const loadCurrentVenue = useCallback(async () => {
     if (!user?.complexId) {
       setCurrentVenue(null);
+      resetThemeColors();
       setLoading(false);
       return;
     }
@@ -52,18 +144,63 @@ export const VenueProvider = ({ children }) => {
         setCurrentVenue(userData.complex);
         // Armazenar no localStorage para persistência
         localStorage.setItem('currentVenueId', userData.complex.id);
+
+        // Atualizar identidade visual
+        const newVisualIdentity = {
+          primaryColor: userData.complex.primaryColor || DEFAULT_COLORS.primary,
+          accentColor: userData.complex.accentColor || DEFAULT_COLORS.accent,
+          logoUrl: userData.complex.logoUrl || null,
+        };
+        setVisualIdentity(newVisualIdentity);
+
+        // Aplicar cores no CSS
+        applyThemeColors(newVisualIdentity.primaryColor, newVisualIdentity.accentColor);
       } else {
         setCurrentVenue(null);
         localStorage.removeItem('currentVenueId');
+        resetThemeColors();
       }
     } catch (err) {
       console.error('Erro ao carregar estabelecimento:', err);
       setError(err.response?.data?.error || 'Erro ao carregar estabelecimento');
       setCurrentVenue(null);
+      resetThemeColors();
     } finally {
       setLoading(false);
     }
   }, [user]);
+
+  /**
+   * Atualiza a identidade visual do venue atual
+   * @param {object} newIdentity - { primaryColor, accentColor, logoUrl }
+   */
+  const updateVisualIdentity = useCallback(async (newIdentity) => {
+    try {
+      const response = await api.put('/complex/visual-identity', newIdentity);
+
+      if (response.data) {
+        const updatedIdentity = {
+          primaryColor: response.data.primaryColor || DEFAULT_COLORS.primary,
+          accentColor: response.data.accentColor || DEFAULT_COLORS.accent,
+          logoUrl: response.data.logoUrl || null,
+        };
+
+        setVisualIdentity(updatedIdentity);
+        applyThemeColors(updatedIdentity.primaryColor, updatedIdentity.accentColor);
+
+        // Atualizar também o currentVenue
+        setCurrentVenue(prev => prev ? { ...prev, ...updatedIdentity } : null);
+
+        return { success: true, data: updatedIdentity };
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar identidade visual:', err);
+      return {
+        success: false,
+        error: err.response?.data?.error || 'Erro ao atualizar identidade visual'
+      };
+    }
+  }, []);
 
   /**
    * Valida se o venueId armazenado ainda é válido
@@ -207,6 +344,11 @@ export const VenueProvider = ({ children }) => {
     venues,
     loading,
     error,
+
+    // Identidade Visual
+    visualIdentity,
+    updateVisualIdentity,
+    DEFAULT_COLORS,
 
     // Ações
     refreshVenueContext,

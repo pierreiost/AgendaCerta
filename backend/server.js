@@ -25,6 +25,7 @@ const resourceTypesRoutes = require('./routes/resourceTypes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 const googleCalendarRoutes = require('./routes/googleCalendar');
+const complexRoutes = require('./routes/complex');
 
 const app = express();
 
@@ -213,6 +214,7 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/resource-types', resourceTypesRoutes);
 app.use('/api/google-calendar', googleCalendarRoutes);
+app.use('/api/complex', complexRoutes);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

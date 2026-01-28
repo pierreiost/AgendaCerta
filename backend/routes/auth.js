@@ -293,7 +293,10 @@ router.get('/me', authMiddleware, async (req, res) => {
           select: {
             id: true,
             name: true,
-            cnpj: true
+            cnpj: true,
+            primaryColor: true,
+            accentColor: true,
+            logoUrl: true
           }
         }
       }
