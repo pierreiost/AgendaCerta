@@ -138,8 +138,8 @@ const Header = () => {
               </button>
             )}
 
-            {/* Configurações - só mostra para ADMIN */}
-            {user?.role === 'ADMIN' && (
+            {/* Configurações - mostra para ADMIN e SUPER_ADMIN */}
+            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
               <button
                 onClick={() => navigate('/settings')}
                 title="Configurações"
@@ -356,8 +356,8 @@ const Header = () => {
               </button>
             )}
 
-            {/* Configurações mobile - só mostra para ADMIN */}
-            {user?.role === 'ADMIN' && (
+            {/* Configurações mobile - mostra para ADMIN e SUPER_ADMIN */}
+            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
               <button
                 onClick={() => {
                   navigate('/settings');
