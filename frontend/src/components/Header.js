@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Shield, LogOut, User, Menu, X, Bell } from 'lucide-react';
+import { Shield, LogOut, User, Menu, X, Bell, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import NotificationBadge from './NotificationBadge';
 import { notificationService } from '../services/api';
@@ -135,6 +135,38 @@ const Header = () => {
               >
                 <Bell size={20} color="#6b7280" />
                 <NotificationBadge count={notificationCount} />
+              </button>
+            )}
+
+            {/* Configurações - só mostra para ADMIN */}
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => navigate('/settings')}
+                title="Configurações"
+                style={{
+                  position: 'relative',
+                  background: 'white',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f9fafb';
+                  e.currentTarget.style.borderColor = 'var(--primary-color)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <Settings size={20} color="#6b7280" />
               </button>
             )}
 
@@ -321,6 +353,33 @@ const Header = () => {
                     {notificationCount}
                   </span>
                 )}
+              </button>
+            )}
+
+            {/* Configurações mobile - só mostra para ADMIN */}
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => {
+                  navigate('/settings');
+                  setMobileMenuOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem',
+                  background: 'white',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#374151'
+                }}
+              >
+                <Settings size={18} />
+                Configurações
               </button>
             )}
 

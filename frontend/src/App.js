@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import Users from './pages/Users';
 import Notifications from './pages/Notifications';
 import SuperAdminPanel from './pages/SuperAdminPanel';
+import Settings from './pages/Settings';
 import { SuperAdminRoute, SystemRoute } from './components/RoleRoute';
 import './styles/App.css';
 
@@ -195,6 +196,14 @@ function App() {
             element={
               <SystemRoute>
                 <Notifications />
+              </SystemRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <SystemRoute>
+                <Settings />
               </SystemRoute>
             }
           />
